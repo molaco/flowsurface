@@ -121,8 +121,8 @@ impl AudioStream {
                 for (exchange, ticker) in active_streams {
                     let mut column = column![].padding(padding::left(4));
 
-                    let is_audio_enabled = self
-                        .is_stream_audio_enabled(&StreamKind::DepthAndTrades { exchange, ticker });
+                    let is_audio_enabled =
+                        self.is_stream_audio_enabled(&StreamKind::DepthAndTrades { ticker });
 
                     let stream_checkbox =
                         checkbox(format!("{exchange} - {ticker}"), is_audio_enabled).on_toggle(
@@ -212,9 +212,9 @@ impl AudioStream {
 
     pub fn is_stream_audio_enabled(&self, stream: &StreamKind) -> bool {
         match stream {
-            StreamKind::DepthAndTrades { exchange, ticker } => self
+            StreamKind::DepthAndTrades { ticker } => self
                 .streams
-                .get(exchange)
+                .get(&ticker.exchange)
                 .and_then(|streams| streams.get(ticker))
                 .is_some_and(|cfg| cfg.enabled),
             _ => false,
@@ -226,13 +226,13 @@ impl AudioStream {
             return None;
         }
 
-        let StreamKind::DepthAndTrades { exchange, ticker } = stream else {
+        let StreamKind::DepthAndTrades { ticker } = stream else {
             return None;
         };
 
         match self
             .streams
-            .get(exchange)
+            .get(&ticker.exchange)
             .and_then(|streams| streams.get(ticker))
         {
             Some(cfg) if cfg.enabled => Some(*cfg),

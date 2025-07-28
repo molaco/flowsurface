@@ -280,7 +280,7 @@ impl Dashboard {
                             let clusters_cfg = match &state.content {
                                 pane::Content::Kline(chart, _) => match chart.kind() {
                                     data::chart::KlineChartKind::Footprint { clusters, .. } => {
-                                        Some(clusters.clone())
+                                        Some(*clusters)
                                     }
                                     _ => None,
                                 },
@@ -321,7 +321,7 @@ impl Dashboard {
                                             if let pane::Content::Kline(chart, _) =
                                                 &mut state.content
                                             {
-                                                chart.set_cluster_kind(cluster_kind.clone());
+                                                chart.set_cluster_kind(*cluster_kind);
                                             }
                                         }
                                     }
@@ -448,7 +448,7 @@ impl Dashboard {
                                         return (Task::none(), None);
                                     }
 
-                                    if let Some((exchange, ticker)) = state.stream_pair() {
+                                    if let Some(ticker) = state.stream_pair() {
                                         let chart_kind =
                                             state.content.chart_kind().unwrap_or_default();
                                         let is_footprint = matches!(
@@ -459,14 +459,12 @@ impl Dashboard {
                                         match new_basis {
                                             Basis::Time(new_tf) => {
                                                 let mut streams = vec![StreamKind::Kline {
-                                                    exchange,
                                                     ticker,
                                                     timeframe: new_tf,
                                                 }];
 
                                                 if is_footprint {
                                                     streams.push(StreamKind::DepthAndTrades {
-                                                        exchange,
                                                         ticker,
                                                     });
                                                 }
@@ -519,10 +517,8 @@ impl Dashboard {
                                                 }
                                             }
                                             Basis::Tick(interval) => {
-                                                state.streams = vec![StreamKind::DepthAndTrades {
-                                                    exchange,
-                                                    ticker,
-                                                }];
+                                                state.streams =
+                                                    vec![StreamKind::DepthAndTrades { ticker }];
 
                                                 if let Some(pane_state) =
                                                     self.get_mut_pane(main_window.id, window, pane)
@@ -1242,11 +1238,7 @@ impl Dashboard {
         let mut tasks: Vec<Task<Message>> = vec![];
 
         for (exchange, ticker, timeframe) in self.streams.kline_streams(None) {
-            let stream_kind = StreamKind::Kline {
-                exchange,
-                ticker,
-                timeframe,
-            };
+            let stream_kind = StreamKind::Kline { ticker, timeframe };
 
             let matching_panes = self
                 .iter_all_panes(main_window_id)
@@ -1330,16 +1322,16 @@ fn request_fetch(
         }
         FetchRange::Trades(from_time, to_time) => {
             let trade_info = state.streams.iter().find_map(|stream| {
-                if let StreamKind::DepthAndTrades { exchange, ticker } = stream {
-                    Some((*exchange, *ticker, pane_id, *stream))
+                if let StreamKind::DepthAndTrades { ticker } = stream {
+                    Some((*ticker, pane_id, *stream))
                 } else {
                     None
                 }
             });
 
-            if let Some((exchange, ticker, pane_id, stream)) = trade_info {
+            if let Some((ticker, pane_id, stream)) = trade_info {
                 let is_binance = matches!(
-                    exchange,
+                    ticker.exchange,
                     Exchange::BinanceSpot | Exchange::BinanceLinear | Exchange::BinanceInverse
                 );
 
@@ -1396,13 +1388,8 @@ fn oi_fetch_task(
     ));
 
     let fetch_task = match stream {
-        StreamKind::Kline {
-            exchange,
-            timeframe,
-            ticker,
-        } => Task::perform(
-            adapter::fetch_open_interest(exchange, ticker, timeframe, range)
-                .map_err(|err| format!("{err}")),
+        StreamKind::Kline { timeframe, ticker } => Task::perform(
+            adapter::fetch_open_interest(ticker, timeframe, range).map_err(|err| format!("{err}")),
             move |result| match result {
                 Ok(oi) => {
                     let data = FetchedData::OI { data: oi, req_id };
@@ -1435,12 +1422,8 @@ fn kline_fetch_task(
     ));
 
     let fetch_task = match stream {
-        StreamKind::Kline {
-            exchange,
-            ticker,
-            timeframe,
-        } => Task::perform(
-            adapter::fetch_klines(exchange, ticker, timeframe, range)
+        StreamKind::Kline { ticker, timeframe } => Task::perform(
+            adapter::fetch_klines(ticker.exchange, ticker, timeframe, range)
                 .map_err(|err| format!("{err}")),
             move |result| match result {
                 Ok(klines) => {

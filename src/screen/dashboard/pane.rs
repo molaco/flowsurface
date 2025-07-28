@@ -25,7 +25,7 @@ use data::{
 };
 use exchange::{
     Kline, OpenInterest, TickMultiplier, Ticker, TickerInfo, Timeframe,
-    adapter::{Exchange, MarketKind, StreamKind},
+    adapter::{MarketKind, StreamKind},
 };
 use iced::{
     Alignment, Element, Length, Renderer, Theme,
@@ -122,14 +122,11 @@ impl State {
         }
     }
 
-    pub fn stream_pair(&self) -> Option<(Exchange, Ticker)> {
+    pub fn stream_pair(&self) -> Option<Ticker> {
         self.streams
             .iter()
             .map(|stream| match stream {
-                StreamKind::DepthAndTrades { exchange, ticker }
-                | StreamKind::Kline {
-                    exchange, ticker, ..
-                } => (*exchange, *ticker),
+                StreamKind::DepthAndTrades { ticker } | StreamKind::Kline { ticker, .. } => *ticker,
             })
             .next()
     }
@@ -146,7 +143,7 @@ impl State {
         }
 
         self.settings.ticker_info = Some(ticker_info);
-        let (exchange, ticker) = (ticker_info.exchange(), ticker_info.ticker);
+        let ticker = ticker_info.ticker;
 
         let result = match content_str {
             "heatmap" => {
@@ -158,7 +155,7 @@ impl State {
 
                 let content =
                     Content::new_heatmap(&self.content, ticker_info, &self.settings, tick_size);
-                let streams = vec![StreamKind::DepthAndTrades { exchange, ticker }];
+                let streams = vec![StreamKind::DepthAndTrades { ticker }];
                 Ok((content, streams))
             }
             "footprint" => {
@@ -179,14 +176,10 @@ impl State {
                 let basis = self.settings.selected_basis.unwrap_or(Timeframe::M5.into());
                 let streams = match basis {
                     Basis::Time(timeframe) => vec![
-                        StreamKind::DepthAndTrades { exchange, ticker },
-                        StreamKind::Kline {
-                            exchange,
-                            ticker,
-                            timeframe,
-                        },
+                        StreamKind::DepthAndTrades { ticker },
+                        StreamKind::Kline { ticker, timeframe },
                     ],
-                    Basis::Tick(_) => vec![StreamKind::DepthAndTrades { exchange, ticker }],
+                    Basis::Tick(_) => vec![StreamKind::DepthAndTrades { ticker }],
                 };
                 Ok((content, streams))
             }
@@ -207,12 +200,8 @@ impl State {
                     .selected_basis
                     .unwrap_or(Timeframe::M15.into());
                 let streams = match basis {
-                    Basis::Time(timeframe) => vec![StreamKind::Kline {
-                        exchange,
-                        ticker,
-                        timeframe,
-                    }],
-                    Basis::Tick(_) => vec![StreamKind::DepthAndTrades { exchange, ticker }],
+                    Basis::Time(timeframe) => vec![StreamKind::Kline { ticker, timeframe }],
+                    Basis::Tick(_) => vec![StreamKind::DepthAndTrades { ticker }],
                 };
                 Ok((content, streams))
             }
@@ -222,12 +211,12 @@ impl State {
                     .visual_config
                     .and_then(|cfg| cfg.time_and_sales());
                 let content = Content::TimeAndSales(TimeAndSales::new(config, Some(ticker_info)));
-                let streams = vec![StreamKind::DepthAndTrades { exchange, ticker }];
+                let streams = vec![StreamKind::DepthAndTrades { ticker }];
                 Ok((content, streams))
             }
-            _ => Err(DashboardError::PaneSet(format!(
-                "A content must be set first."
-            ))),
+            _ => Err(DashboardError::PaneSet(
+                "A content must be set first.".to_string(),
+            )),
         };
 
         match result {
@@ -302,8 +291,8 @@ impl State {
             })]
         };
 
-        if let Some((exchange, ticker)) = self.stream_pair() {
-            let exchange_icon = icon_text(style::exchange_icon(exchange), 14);
+        if let Some(ticker) = self.stream_pair() {
+            let exchange_icon = icon_text(style::exchange_icon(ticker.exchange), 14);
 
             let ticker_str = {
                 let symbol = ticker.display_symbol_and_type().0;
@@ -1053,13 +1042,13 @@ impl std::fmt::Display for Content {
 
 impl PartialEq for Content {
     fn eq(&self, other: &Self) -> bool {
-        match (self, other) {
-            (Content::Starter, Content::Starter) => true,
-            (Content::Heatmap(_, _), Content::Heatmap(_, _)) => true,
-            (Content::Kline(_, _), Content::Kline(_, _)) => true,
-            (Content::TimeAndSales(_), Content::TimeAndSales(_)) => true,
-            _ => false,
-        }
+        matches!(
+            (self, other),
+            (Content::Starter, Content::Starter)
+                | (Content::Heatmap(_, _), Content::Heatmap(_, _))
+                | (Content::Kline(_, _), Content::Kline(_, _))
+                | (Content::TimeAndSales(_), Content::TimeAndSales(_))
+        )
     }
 }
 

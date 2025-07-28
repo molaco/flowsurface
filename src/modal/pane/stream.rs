@@ -302,7 +302,7 @@ impl Modifier {
         }
     }
 
-    pub fn view<'a>(&self, ticker_info: Option<(Exchange, Ticker)>) -> Element<'a, Message> {
+    pub fn view<'a>(&self, ticker: Option<Ticker>) -> Element<'a, Message> {
         let kind = self.kind;
 
         let (selected_basis, selected_ticksize) = match kind {
@@ -440,12 +440,13 @@ impl Modifier {
                             );
                             basis_selection_column =
                                 basis_selection_column.push(kline_timeframe_grid);
-                        } else if let Some((exchange, _)) = ticker_info {
+                        } else if let Some(ticker) = ticker {
                             let heatmap_timeframes: Vec<Timeframe> = Timeframe::HEATMAP
                                 .iter()
                                 .copied()
                                 .filter(|tf| {
-                                    !(exchange == Exchange::BybitSpot && *tf == Timeframe::MS100)
+                                    !(ticker.exchange == Exchange::BybitSpot
+                                        && *tf == Timeframe::MS100)
                                 })
                                 .collect();
                             let heatmap_timeframe_grid = modifiers_grid(

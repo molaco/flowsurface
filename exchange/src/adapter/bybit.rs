@@ -386,7 +386,7 @@ pub fn connect_market_stream(ticker: Ticker) -> impl Stream<Item = Event> {
 
                                             let _ = output
                                                 .send(Event::DepthReceived(
-                                                    StreamKind::DepthAndTrades { exchange, ticker },
+                                                    StreamKind::DepthAndTrades { ticker },
                                                     time,
                                                     orderbook.depth.clone(),
                                                     std::mem::take(&mut trades_buffer)
@@ -483,11 +483,7 @@ pub fn connect_kline_stream(
                                     {
                                         let _ = output
                                             .send(Event::KlineReceived(
-                                                StreamKind::Kline {
-                                                    exchange,
-                                                    ticker,
-                                                    timeframe,
-                                                },
+                                                StreamKind::Kline { ticker, timeframe },
                                                 kline,
                                             ))
                                             .await;
