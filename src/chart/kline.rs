@@ -912,7 +912,7 @@ impl canvas::Program<Message> for KlineChart {
 
     fn draw(
         &self,
-        _state: &Self::State,
+        interaction: &Interaction,
         renderer: &Renderer,
         theme: &Theme,
         bounds: Rectangle,
@@ -1048,7 +1048,7 @@ impl canvas::Program<Message> for KlineChart {
         let crosshair = chart.cache.crosshair.draw(renderer, bounds_size, |frame| {
             if let Some(cursor_position) = cursor.position_in(bounds) {
                 let (_, rounded_aggregation) =
-                    chart.draw_crosshair(frame, theme, bounds_size, cursor_position);
+                    chart.draw_crosshair(frame, theme, bounds_size, cursor_position, interaction);
 
                 draw_crosshair_tooltip(&self.data_source, frame, palette, rounded_aggregation);
             }
@@ -1066,7 +1066,7 @@ impl canvas::Program<Message> for KlineChart {
         match interaction {
             Interaction::Panning { .. } => mouse::Interaction::Grabbing,
             Interaction::Zoomin { .. } => mouse::Interaction::ZoomIn,
-            Interaction::None => {
+            Interaction::None | Interaction::Ruler { .. } => {
                 if cursor.is_over(bounds) {
                     mouse::Interaction::Crosshair
                 } else {

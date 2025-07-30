@@ -457,7 +457,7 @@ impl canvas::Program<Message> for HeatmapChart {
 
     fn draw(
         &self,
-        _state: &Self::State,
+        interaction: &Interaction,
         renderer: &Renderer,
         theme: &Theme,
         bounds: Rectangle,
@@ -759,8 +759,19 @@ impl canvas::Program<Message> for HeatmapChart {
         if !self.is_empty() {
             let crosshair = chart.cache.crosshair.draw(renderer, bounds_size, |frame| {
                 if let Some(cursor_position) = cursor.position_in(bounds) {
-                    let (cursor_at_price, cursor_at_time) =
-                        chart.draw_crosshair(frame, theme, bounds_size, cursor_position);
+                    let (cursor_at_price, cursor_at_time) = chart.draw_crosshair(
+                        frame,
+                        theme,
+                        bounds_size,
+                        cursor_position,
+                        interaction,
+                    );
+
+                    if matches!(interaction, Interaction::Panning { .. })
+                        || matches!(interaction, Interaction::Ruler { start } if start.is_some())
+                    {
+                        return;
+                    }
 
                     let aggr_time: u64 = match chart.basis {
                         Basis::Time(interval) => interval.into(),
@@ -884,7 +895,7 @@ impl canvas::Program<Message> for HeatmapChart {
         match interaction {
             Interaction::Panning { .. } => mouse::Interaction::Grabbing,
             Interaction::Zoomin { .. } => mouse::Interaction::ZoomIn,
-            Interaction::None => {
+            Interaction::None | Interaction::Ruler { .. } => {
                 if cursor.is_over(bounds) {
                     return mouse::Interaction::Crosshair;
                 }
