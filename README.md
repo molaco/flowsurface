@@ -1,51 +1,61 @@
-<div align="center">
-  <img width="2554" alt="overview-layout" src="https://github.com/user-attachments/assets/50fc7fe5-2bd6-4d6f-8040-19e9fd194e25" />
-</div>
+# Flowsurface
 
-### Some of the features:
-
-- Customizable and savable grid layouts, selectable themes
-- Supports most of the spot(USDT) and linear/inverse perp pairs from Binance & Bybit
-- Tick size multipliers for price grouping on `FootprintChart` & `HeatmapChart`
-- Alongside traditional Time-based charts, `CandlestickChart` & `FootprintChart` supports "ticks"(based on aggregated trade streams) to be used as intervals to create Tick-based charts
+An experimental open-source desktop charting application. Currently supports Binance and Bybit
 
 <div align="center">
-  <img width="283" alt="layout-manager" src="https://github.com/user-attachments/assets/6ffac895-5f8c-4d9e-a1e8-a8bd41bd7fc3" />
-  <img width="242" alt="expanded-ticker-card" src="https://github.com/user-attachments/assets/c75161bc-e572-4737-a315-115545e27bbe" />
+  <img width="2330" height="1440" alt="overview-layout-1" src="https://github.com/user-attachments/assets/7875117e-2475-4549-ac8c-6d350dacdb75" />
 </div>
 
-##### User receives market data directly from exchanges' public REST APIs & Websockets over TLS
+### Key Features
 
-- Orderbook total bid/ask levels: 1000 for Binance Perp/Spot; 500 for Bybit Perps, 200 for Bybit Spot
-- Binance perp/spot & Bybit perp pairs streams @100ms; Bybit spot pairs streams @200ms
-- As historical data, it can fetch OHLCV, open interest and partially, trades:
+-   Multiple chart/panel types:
+    -   **Heatmap (Historical DOM):** Uses live trades and L2 orderbook data to create a time-series heatmap chart. Supports customizable price grouping and selectable time intervals. Includes a configurable fixed or visible range volume profile.
+    -   **Candlestick:** Traditional kline chart supporting both time-based and custom tick-based intervals.
+    -   **Footprint:** Price-grouped and interval-aggregated views for trades on top of candlestick chart; supports different clustering methods. Includes configurable imbalance and naked-POC studies.
+    -   **Time & Sales:** Scrollable list of live trades.
+-   Real-time sound effects driven by trade streams
+-   Pane linking and grouping for quickly switching tickers across multiple panes
+-   Customizable and persistent layouts, themes, panel and chart settings
 
-#### Historical trades on footprint chart:
+<div align="center">
+  <img width="268" height="287" alt="expanded-ticker-card" src="https://github.com/user-attachments/assets/ab8776b1-7e81-4a2d-a9e7-42d3b238cf1a" />
+  <img width="199" height="405" alt="layout-manager" src="https://github.com/user-attachments/assets/63b5cf07-c4bf-4199-90b4-f7530c60de63" />
+</div>
 
-Optionally, you can enable trade fetching from settings menu, experimental because of unreliability:
+##### Market data is received directly from exchanges' public REST APIs and WebSockets.
 
-- Binance connector supports downloading historical trades from [data.binance.vision](https://data.binance.vision), fast and easy way to get trades, but they dont support intraday data.
-Intraday trades fetched by pagination using Binance's public REST APIs: `/fapi/v1/aggTrades` & `api/v3/aggTrades`, which might be slow because of rate-limits
+#### Historical Trades on Footprint Charts
 
-- Bybit itself doesnt have a similar purpose public REST API
+-   By default, `FootprintChart` captures and plots live trades in real time via WebSocket.
+-   For Binance tickers, you can optionally backfill the visible time range by enabling trade fetching in the settings:
+    -   [data.binance.vision](https://data.binance.vision/): Fast daily bulk downloads (no intraday).
+    -   REST API (e.g., `/fapi/v1/aggTrades`): Slower, paginated intraday fetching (subject to rate limits).
+    -   The Binance connector can use either or both methods to retrieve historical data as needed.
+-   Trade fetching for Bybit tickers is not supported, as they lack a suitable REST API.
 
-Flowsurface can use those ends with Binance tickers to visualize historical public trades while being independent of a 'middleman' database between exchange and the user
+---
 
-So, when a chart instance signal the exchange connector after a data integrity check, about missing trades in the visible range; it tries via fetching, downloading and/or loading from cache, whichever suitable to get desired historical data
+## Installation
 
-## Build from source
+### Using Prebuilt Binaries
 
-Requirements:
+Prebuilt binaries for Windows, macOS, and Linux are available on the [Releases page](https://github.com/akenshaw/flowsurface/releases).
 
-- [Rust toolchain](https://www.rust-lang.org/tools/install)
-- [Git version control system](https://git-scm.com/)
-- System dependencies:
-  - **Linux**:
-    - Debian/Ubuntu: `sudo apt install build-essential pkg-config libasound2-dev`
-    - Arch: `sudo pacman -S base-devel alsa-lib`
-    - Fedora: `sudo dnf install gcc make alsa-lib-devel`
-  - **macOS**: Install Xcode Command Line Tools: `xcode-select --install`
-  - **Windows**: No additional dependencies required
+### Build from Source
+
+#### Requirements
+
+-   [Rust toolchain](https://www.rust-lang.org/tools/install)
+-   [Git version control system](https://git-scm.com/)
+-   System dependencies:
+    -   **Linux**:
+        -   Debian/Ubuntu: `sudo apt install build-essential pkg-config libasound2-dev`
+        -   Arch: `sudo pacman -S base-devel alsa-lib`
+        -   Fedora: `sudo dnf install gcc make alsa-lib-devel`
+    -   **macOS**: Install Xcode Command Line Tools: `xcode-select --install`
+    -   **Windows**: No additional dependencies required
+
+#### Build and Run
 
 ```bash
 # Clone the repository
@@ -61,3 +71,5 @@ cargo run --release
 <a href="https://github.com/iced-rs/iced">
   <img src="https://gist.githubusercontent.com/hecrj/ad7ecd38f6e47ff3688a38c79fd108f0/raw/74384875ecbad02ae2a926425e9bcafd0695bade/color.svg" width="130px">
 </a>
+
+---
