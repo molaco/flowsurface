@@ -177,44 +177,50 @@ impl canvas::Program<Message> for VolumeIndicator<'_> {
                         |(timestamp, (buy_volume, sell_volume))| {
                             let x_position = chart_state.interval_to_x(*timestamp);
 
-                            if *buy_volume == -1.0 {
-                                let bar_height = (sell_volume / max_volume)
-                                    * (bounds.height / chart_state.scaling);
+                            let (total, delta, delta_positive, bybit_workaround) =
+                                if *buy_volume == -1.0 {
+                                    // Bybit workaround: only total volume available
+                                    (*sell_volume, 0.0, true, true)
+                                } else {
+                                    let delta = (buy_volume - sell_volume).abs();
+                                    let delta_positive = buy_volume >= sell_volume;
+                                    (buy_volume + sell_volume, delta, delta_positive, false)
+                                };
 
-                                let bar_width = chart_state.cell_width * 0.9;
+                            let total_bar_height =
+                                (total / max_volume) * (bounds.height / chart_state.scaling);
+                            let delta_bar_height =
+                                (delta / max_volume) * (bounds.height / chart_state.scaling);
 
+                            let bar_width = chart_state.cell_width * 0.9;
+
+                            let base_color = if delta_positive {
+                                palette.success.base.color
+                            } else {
+                                palette.danger.base.color
+                            };
+
+                            frame.fill_rectangle(
+                                Point::new(
+                                    x_position - (bar_width / 2.0),
+                                    (bounds.height / chart_state.scaling) - total_bar_height,
+                                ),
+                                Size::new(bar_width, total_bar_height),
+                                if bybit_workaround {
+                                    palette.secondary.strong.color
+                                } else {
+                                    base_color.scale_alpha(0.3)
+                                },
+                            );
+
+                            if delta > 0.0 {
                                 frame.fill_rectangle(
                                     Point::new(
                                         x_position - (bar_width / 2.0),
-                                        (bounds.height / chart_state.scaling) - bar_height,
+                                        (bounds.height / chart_state.scaling) - delta_bar_height,
                                     ),
-                                    Size::new(bar_width, bar_height),
-                                    palette.secondary.strong.color,
-                                );
-                            } else {
-                                let buy_bar_height = (buy_volume / max_volume)
-                                    * (bounds.height / chart_state.scaling);
-                                let sell_bar_height = (sell_volume / max_volume)
-                                    * (bounds.height / chart_state.scaling);
-
-                                let bar_width = (chart_state.cell_width / 2.0) * 0.9;
-
-                                frame.fill_rectangle(
-                                    Point::new(
-                                        x_position - bar_width,
-                                        (region.y + region.height) - sell_bar_height,
-                                    ),
-                                    Size::new(bar_width, sell_bar_height),
-                                    palette.danger.base.color,
-                                );
-
-                                frame.fill_rectangle(
-                                    Point::new(
-                                        x_position,
-                                        (region.y + region.height) - buy_bar_height,
-                                    ),
-                                    Size::new(bar_width, buy_bar_height),
-                                    palette.success.base.color,
+                                    Size::new(bar_width, delta_bar_height),
+                                    base_color,
                                 );
                             }
                         },
@@ -232,30 +238,49 @@ impl canvas::Program<Message> for VolumeIndicator<'_> {
                         .for_each(|(index, (_, (buy_volume, sell_volume)))| {
                             let x_position = chart_state.interval_to_x(index as u64);
 
-                            if max_volume > 0.0 {
-                                let buy_bar_height = (buy_volume / max_volume)
-                                    * (bounds.height / chart_state.scaling);
-                                let sell_bar_height = (sell_volume / max_volume)
-                                    * (bounds.height / chart_state.scaling);
+                            let (total, delta, delta_positive, bybit_workaround) =
+                                if *buy_volume == -1.0 {
+                                    (*sell_volume, 0.0, true, true)
+                                } else {
+                                    let delta = (buy_volume - sell_volume).abs();
+                                    let delta_positive = buy_volume >= sell_volume;
+                                    (buy_volume + sell_volume, delta, delta_positive, false)
+                                };
 
-                                let bar_width = (chart_state.cell_width / 2.0) * 0.9;
+                            let total_bar_height =
+                                (total / max_volume) * (bounds.height / chart_state.scaling);
+                            let delta_bar_height =
+                                (delta / max_volume) * (bounds.height / chart_state.scaling);
 
+                            let bar_width = chart_state.cell_width * 0.9;
+
+                            let base_color = if delta_positive {
+                                palette.success.base.color
+                            } else {
+                                palette.danger.base.color
+                            };
+
+                            frame.fill_rectangle(
+                                Point::new(
+                                    x_position - (bar_width / 2.0),
+                                    (region.y + region.height) - total_bar_height,
+                                ),
+                                Size::new(bar_width, total_bar_height),
+                                if bybit_workaround {
+                                    base_color
+                                } else {
+                                    base_color.scale_alpha(0.3)
+                                },
+                            );
+
+                            if delta > 0.0 {
                                 frame.fill_rectangle(
                                     Point::new(
-                                        x_position - bar_width,
-                                        (region.y + region.height) - sell_bar_height,
+                                        x_position - (bar_width / 2.0),
+                                        (region.y + region.height) - delta_bar_height,
                                     ),
-                                    Size::new(bar_width, sell_bar_height),
-                                    palette.danger.base.color,
-                                );
-
-                                frame.fill_rectangle(
-                                    Point::new(
-                                        x_position,
-                                        (region.y + region.height) - buy_bar_height,
-                                    ),
-                                    Size::new(bar_width, buy_bar_height),
-                                    palette.success.base.color,
+                                    Size::new(bar_width, delta_bar_height),
+                                    base_color,
                                 );
                             }
                         });
