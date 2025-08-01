@@ -11,6 +11,8 @@ use iced::{
     widget::canvas::{self, Cache, Frame, Geometry},
 };
 
+const REGULAR_LABEL_WIDTH: f32 = TEXT_SIZE * 6.0;
+
 /// calculates `Rectangle` from given content, clamps it within bounds if needed
 pub fn calc_label_rect(
     y_pos: f32,
@@ -135,6 +137,11 @@ impl AxisLabel {
     fn draw(&self, frame: &mut Frame) {
         match self {
             AxisLabel::X { bounds, label } => {
+                let frame_bounds = frame.size();
+                if bounds.x + bounds.width < 0.0 || bounds.x > frame_bounds.width {
+                    return;
+                }
+
                 if let Some(background_color) = label.background_color {
                     frame.fill_rectangle(
                         Point::new(bounds.x, bounds.y),
@@ -439,71 +446,40 @@ impl canvas::Program<Message> for AxisLabelsX<'_> {
         let labels = self.labels_cache.draw(renderer, bounds.size(), |frame| {
             let region = self.visible_region(frame.size());
 
-            let x_labels_can_fit = (bounds.width / (TEXT_SIZE * 16.0)) as i32;
-            let mut labels: Vec<AxisLabel> = Vec::with_capacity(x_labels_can_fit as usize + 1);
+            let target_spacing = REGULAR_LABEL_WIDTH * 2.0;
+            let target_count = (bounds.width / target_spacing).floor() as usize;
+
+            let label_count = target_count.max(2);
+
+            let mut labels: Vec<AxisLabel> = Vec::with_capacity(label_count + 1); // +1 for crosshair
 
             match self.basis {
                 Basis::Tick(_) => {
                     if let Some(interval_keys) = &self.interval_keys {
-                        if !interval_keys.is_empty() {
+                        let last_idx = interval_keys.len() - 1;
+                        let mut last_x: Option<f32> = None;
+                        for (i, timestamp) in interval_keys.iter().enumerate() {
+                            let cell_index = -(last_idx as i32) + i as i32;
+                            let x_position = cell_index as f32 * self.cell_width;
+
                             let x_min_region = region.x;
                             let x_max_region = region.x + region.width;
+                            let snap_ratio = if (x_max_region - x_min_region).abs() < f32::EPSILON {
+                                0.5
+                            } else {
+                                (x_position - x_min_region) / (x_max_region - x_min_region)
+                            };
+                            let snap_x = snap_ratio * bounds.width;
 
-                            let last_idx = interval_keys.len() - 1;
-
-                            let first_cell_idx = -(last_idx as i32);
-                            let last_cell_idx = 0;
-
-                            let min_cell_idx = (x_min_region / self.cell_width).floor() as i32;
-                            let max_cell_idx = (x_max_region / self.cell_width).ceil() as i32;
-
-                            let iter_start_cell_idx = min_cell_idx.max(first_cell_idx);
-                            let iter_end_cell_idx = max_cell_idx.min(last_cell_idx);
-
-                            if iter_start_cell_idx <= iter_end_cell_idx {
-                                let num_potential_labels =
-                                    (iter_end_cell_idx - iter_start_cell_idx + 1) as f32;
-
-                                let num_labels_to_fit = x_labels_can_fit.max(1) as f32;
-                                let step_size =
-                                    (num_potential_labels / num_labels_to_fit).ceil().max(1.0)
-                                        as usize;
-
-                                let mut generated_labels = Vec::with_capacity(
-                                    (num_potential_labels / step_size as f32).ceil() as usize,
+                            if last_x.map_or(true, |lx| (snap_x - lx).abs() >= target_spacing) {
+                                let label_text = self.timezone.format_timestamp(
+                                    (*timestamp / 1000) as i64,
+                                    exchange::Timeframe::MS100,
                                 );
-
-                                for cell_index in
-                                    (iter_start_cell_idx..=iter_end_cell_idx).step_by(step_size)
-                                {
-                                    let x_position = cell_index as f32 * self.cell_width;
-
-                                    let snap_ratio = if (x_max_region - x_min_region).abs()
-                                        < f32::EPSILON
-                                    {
-                                        0.5
-                                    } else {
-                                        (x_position - x_min_region) / (x_max_region - x_min_region)
-                                    };
-
-                                    let key_idx = last_idx - i64::from(-cell_index) as usize;
-
-                                    if let Some(timestamp) = interval_keys.get(key_idx) {
-                                        let label_text = self.timezone.format_timestamp(
-                                            (*timestamp / 1000) as i64,
-                                            exchange::Timeframe::MS100,
-                                        );
-
-                                        let snap_x = snap_ratio * bounds.width;
-
-                                        let label = AxisLabel::new_x(
-                                            snap_x, label_text, bounds, false, palette,
-                                        );
-                                        generated_labels.push(label);
-                                    }
-                                }
-
-                                labels.extend(generated_labels);
+                                labels.push(AxisLabel::new_x(
+                                    snap_x, label_text, bounds, false, palette,
+                                ));
+                                last_x = Some(snap_x);
                             }
                         }
                     }
@@ -518,7 +494,7 @@ impl canvas::Program<Message> for AxisLabelsX<'_> {
                         bounds,
                         x_min_region,
                         x_max_region,
-                        x_labels_can_fit,
+                        label_count as i32,
                         palette,
                     );
 
