@@ -19,7 +19,7 @@ use data::{
         indicator::HeatmapIndicator,
     },
 };
-use exchange::{TickerInfo, Trade, adapter::MarketKind, depth::Depth};
+use exchange::{SIZE_IN_QUOTE_CURRENCY, TickerInfo, Trade, adapter::MarketKind, depth::Depth};
 
 use iced::widget::canvas::{self, Event, Geometry, Path};
 use iced::{
@@ -502,6 +502,8 @@ impl canvas::Program<Message> for HeatmapChart {
             let (max_aggr_volume, max_trade_qty) =
                 (qty_scales.max_aggr_volume, qty_scales.max_trade_qty);
 
+            let size_in_quote_currency = SIZE_IN_QUOTE_CURRENCY.get() == Some(&true);
+
             if let Some(merge_strat) = self.visual_config().coalescing {
                 let coalesced_visual_runs = self.heatmap.coalesced_runs(
                     earliest,
@@ -548,7 +550,13 @@ impl canvas::Program<Message> for HeatmapChart {
                             .filter(|run| {
                                 let order_size = match market_type {
                                     MarketKind::InversePerps => run.qty(),
-                                    _ => **price * run.qty(),
+                                    _ => {
+                                        if size_in_quote_currency {
+                                            run.qty()
+                                        } else {
+                                            **price * run.qty()
+                                        }
+                                    }
                                 };
                                 order_size > self.visual_config.order_size_filter
                             })
@@ -621,7 +629,13 @@ impl canvas::Program<Message> for HeatmapChart {
 
                         let trade_size = match market_type {
                             MarketKind::InversePerps => trade.qty,
-                            _ => trade.qty * trade.price,
+                            _ => {
+                                if size_in_quote_currency {
+                                    trade.qty
+                                } else {
+                                    trade.qty * trade.price
+                                }
+                            }
                         };
 
                         if trade_size > self.visual_config.trade_size_filter {

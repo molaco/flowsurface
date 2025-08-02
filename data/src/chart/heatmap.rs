@@ -307,6 +307,8 @@ impl HistoricalDepth {
             CoalesceKind::Average(t) | CoalesceKind::First(t) | CoalesceKind::Max(t) => t,
         };
 
+        let size_in_quote_currency = exchange::SIZE_IN_QUOTE_CURRENCY.get() == Some(&true);
+
         for (price_at_level, runs_at_price_level) in
             self.iter_time_filtered(earliest, latest, highest, lowest)
         {
@@ -318,7 +320,13 @@ impl HistoricalDepth {
                     }
                     let order_size = match market_type {
                         MarketKind::InversePerps => run_ref.qty(),
-                        _ => price_at_level.into_inner() * run_ref.qty(),
+                        _ => {
+                            if size_in_quote_currency {
+                                run_ref.qty()
+                            } else {
+                                price_at_level.into_inner() * run_ref.qty()
+                            }
+                        }
                     };
                     order_size > order_size_filter
                 })

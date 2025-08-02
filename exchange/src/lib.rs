@@ -6,16 +6,42 @@ mod limiter;
 
 pub use adapter::Event;
 use adapter::{Exchange, MarketKind, StreamKind};
+
 use rust_decimal::{
     Decimal,
     prelude::{FromPrimitive, ToPrimitive},
 };
 use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
+
+use std::sync::OnceLock;
 use std::{
     fmt::{self, Write},
     hash::Hash,
 };
+
+pub static SIZE_IN_QUOTE_CURRENCY: OnceLock<bool> = OnceLock::new();
+
+pub fn is_flag_enabled() -> bool {
+    *SIZE_IN_QUOTE_CURRENCY.get().unwrap_or(&false)
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
+pub enum PreferredCurrency {
+    Quote,
+    Base,
+}
+
+pub fn set_size_in_quote_currency(preferred: PreferredCurrency) {
+    let enabled = match preferred {
+        PreferredCurrency::Quote => true,
+        PreferredCurrency::Base => false,
+    };
+
+    SIZE_IN_QUOTE_CURRENCY
+        .set(enabled)
+        .expect("Failed to set SIZE_IN_QUOTE_CURRENCY");
+}
 
 impl std::fmt::Display for Timeframe {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {

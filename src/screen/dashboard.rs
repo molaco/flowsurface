@@ -1196,7 +1196,7 @@ impl Dashboard {
                     let depth_subs = specs
                         .depth
                         .iter()
-                        .map(|(_, ticker)| depth_subscription(*exchange, *ticker))
+                        .map(|(_, ticker)| depth_subscription(*ticker))
                         .collect::<Vec<_>>();
 
                     if !depth_subs.is_empty() {
@@ -1475,7 +1475,8 @@ pub fn fetch_trades_batched(
     })
 }
 
-pub fn depth_subscription(exchange: Exchange, ticker: Ticker) -> Subscription<exchange::Event> {
+pub fn depth_subscription(ticker: Ticker) -> Subscription<exchange::Event> {
+    let exchange = ticker.exchange;
     let config = StreamConfig::new(ticker, exchange);
     match exchange {
         Exchange::BinanceSpot | Exchange::BinanceInverse | Exchange::BinanceLinear => {

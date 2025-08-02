@@ -58,6 +58,7 @@ struct Flowsurface {
     theme_editor: ThemeEditor,
     audio_stream: audio::AudioStream,
     confirm_dialog: Option<(String, Box<Message>)>,
+    preferred_currency: exchange::PreferredCurrency,
     scale_factor: data::ScaleFactor,
     timezone: data::UserTimezone,
     theme: data::Theme,
@@ -78,6 +79,7 @@ enum Message {
     ScaleFactorChanged(data::ScaleFactor),
     SetTimezone(data::UserTimezone),
     ToggleTradeFetch(bool),
+    ToggleShowQuoteCurrency(bool),
     RemoveNotification(usize),
     ToggleDialogModal(Option<(String, Box<Message>)>),
     ThemeEditor(modal::theme_editor::Message),
@@ -111,6 +113,7 @@ impl Flowsurface {
             confirm_dialog: None,
             timezone: saved_state.timezone,
             scale_factor: saved_state.scale_factor,
+            preferred_currency: saved_state.preferred_currency,
             theme: saved_state.theme,
             notifications: vec![],
         };
@@ -244,6 +247,7 @@ impl Flowsurface {
                     self.sidebar.state,
                     self.scale_factor,
                     audio_cfg,
+                    self.preferred_currency,
                 );
 
                 match serde_json::to_string(&layout) {
@@ -330,6 +334,17 @@ impl Flowsurface {
                     });
 
                 if checked {
+                    self.confirm_dialog = None;
+                }
+            }
+            Message::ToggleShowQuoteCurrency(checked) => {
+                self.preferred_currency = if checked {
+                    exchange::PreferredCurrency::Quote
+                } else {
+                    exchange::PreferredCurrency::Base
+                };
+
+                if self.confirm_dialog.is_some() {
                     self.confirm_dialog = None;
                 }
             }
@@ -596,6 +611,28 @@ impl Flowsurface {
                         Message::SetTimezone,
                     );
 
+                    let size_in_quote_currency_checkbox = {
+                        let is_active = match self.preferred_currency {
+                            exchange::PreferredCurrency::Quote => true,
+                            exchange::PreferredCurrency::Base => false,
+                        };
+
+                        let checkbox = iced::widget::checkbox("Size in quote currency", is_active)
+                            .on_toggle(|checked| {
+                                Message::ToggleDialogModal(Some((
+                                    "Preferred currency change will take effect after restart"
+                                        .to_string(),
+                                    Box::new(Message::ToggleShowQuoteCurrency(checked)),
+                                )))
+                            });
+
+                        tooltip(
+                            checkbox,
+                            Some("Show sizes/volumes in quote currency (USD)"),
+                            TooltipPosition::Top,
+                        )
+                    };
+
                     let sidebar_pos = pick_list(
                         [sidebar::Position::Left, sidebar::Position::Right],
                         Some(sidebar_pos),
@@ -672,6 +709,7 @@ impl Flowsurface {
                         column![open_data_folder,].spacing(8),
                         column![text("Sidebar position").size(14), sidebar_pos,].spacing(12),
                         column![text("Time zone").size(14), timezone_picklist,].spacing(12),
+                        column![text("Market data").size(14), size_in_quote_currency_checkbox,].spacing(12),
                         column![text("Theme").size(14), theme_picklist,].spacing(12),
                         column![text("Interface scale").size(14), scale_factor,].spacing(12),
                         column![

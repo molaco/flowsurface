@@ -90,6 +90,8 @@ impl TimeAndSales {
             &mut self.recent_trades
         };
 
+        let size_in_quote_currency = exchange::SIZE_IN_QUOTE_CURRENCY.get() == Some(&true);
+
         for trade in trades_buffer {
             if let Some(trade_time) = chrono::DateTime::from_timestamp(
                 trade.time as i64 / 1000,
@@ -104,7 +106,13 @@ impl TimeAndSales {
 
                 let trade_size = match market_type {
                     MarketKind::InversePerps => converted_trade.qty,
-                    _ => converted_trade.qty * converted_trade.price,
+                    _ => {
+                        if size_in_quote_currency {
+                            converted_trade.qty
+                        } else {
+                            converted_trade.qty * converted_trade.price
+                        }
+                    }
                 };
 
                 if trade_size >= size_filter {
@@ -126,7 +134,13 @@ impl TimeAndSales {
                     .filter(|t| {
                         let trade_size = match market_type {
                             MarketKind::InversePerps => t.qty,
-                            _ => t.qty * t.price,
+                            _ => {
+                                if size_in_quote_currency {
+                                    t.qty
+                                } else {
+                                    t.qty * t.price
+                                }
+                            }
                         };
                         trade_size >= size_filter
                     })
@@ -272,13 +286,21 @@ impl canvas::Program<Message> for TimeAndSales {
             let start_index = (row_scroll_offset / row_height).floor() as usize;
             let visible_rows = (bounds.height / row_height).ceil() as usize;
 
+            let size_in_quote_currency = exchange::SIZE_IN_QUOTE_CURRENCY.get() == Some(&true);
+
             let trades_to_draw = self
                 .recent_trades
                 .iter()
                 .filter(|t| {
                     let trade_size = match market_type {
                         MarketKind::InversePerps => t.qty,
-                        _ => t.qty * t.price,
+                        _ => {
+                            if size_in_quote_currency {
+                                t.qty
+                            } else {
+                                t.qty * t.price
+                            }
+                        }
                     };
                     trade_size >= self.config.trade_size_filter
                 })

@@ -1,13 +1,12 @@
-use crate::limiter::{self, http_request_with_limiter};
-
 use super::{
     super::{
-        Exchange, Kline, MarketKind, OpenInterest, StreamKind, Ticker, TickerInfo, TickerStats,
-        Timeframe, Trade,
+        Exchange, Kline, MarketKind, OpenInterest, SIZE_IN_QUOTE_CURRENCY, StreamKind, Ticker,
+        TickerInfo, TickerStats, Timeframe, Trade,
         connect::{State, setup_tcp_connection, setup_tls_connection, setup_websocket_connection},
         de_string_to_f32, de_string_to_u64,
         depth::{DepthPayload, DepthUpdate, LocalDepthCache, Order},
         is_symbol_supported,
+        limiter::{self, http_request_with_limiter},
     },
     AdapterError, Event,
 };
@@ -334,6 +333,8 @@ pub fn connect_market_stream(ticker: Ticker) -> impl Stream<Item = Event> {
         let mut trades_buffer: Vec<Trade> = Vec::new();
         let mut orderbook = LocalDepthCache::default();
 
+        let size_in_quote_currency = SIZE_IN_QUOTE_CURRENCY.get() == Some(&true);
+
         loop {
             match &mut state {
                 State::Disconnected => {
@@ -350,7 +351,11 @@ pub fn connect_market_stream(ticker: Ticker) -> impl Stream<Item = Event> {
                                                 time: de_trade.time,
                                                 is_sell: de_trade.is_sell == "Sell",
                                                 price: de_trade.price,
-                                                qty: de_trade.qty,
+                                                qty: if size_in_quote_currency {
+                                                    (de_trade.qty * de_trade.price).round()
+                                                } else {
+                                                    de_trade.qty
+                                                },
                                             };
 
                                             trades_buffer.push(trade);
@@ -365,7 +370,11 @@ pub fn connect_market_stream(ticker: Ticker) -> impl Stream<Item = Event> {
                                                 .iter()
                                                 .map(|x| Order {
                                                     price: x.price,
-                                                    qty: x.qty,
+                                                    qty: if size_in_quote_currency {
+                                                        (x.qty * x.price).round()
+                                                    } else {
+                                                        x.qty
+                                                    },
                                                 })
                                                 .collect(),
                                             asks: de_depth
@@ -373,7 +382,11 @@ pub fn connect_market_stream(ticker: Ticker) -> impl Stream<Item = Event> {
                                                 .iter()
                                                 .map(|x| Order {
                                                     price: x.price,
-                                                    qty: x.qty,
+                                                    qty: if size_in_quote_currency {
+                                                        (x.qty * x.price).round()
+                                                    } else {
+                                                        x.qty
+                                                    },
                                                 })
                                                 .collect(),
                                         };
@@ -470,13 +483,19 @@ pub fn connect_kline_stream(
                                 feed_de(&msg.payload[..], None, market_type)
                             {
                                 for de_kline in &de_kline_vec {
+                                    let volume = if SIZE_IN_QUOTE_CURRENCY.get() == Some(&true) {
+                                        (de_kline.volume * de_kline.close).round()
+                                    } else {
+                                        de_kline.volume
+                                    };
+
                                     let kline = Kline {
                                         time: de_kline.time,
                                         open: de_kline.open,
                                         high: de_kline.high,
                                         low: de_kline.low,
                                         close: de_kline.close,
-                                        volume: (-1.0, de_kline.volume),
+                                        volume: (-1.0, volume),
                                     };
 
                                     if let Some(timeframe) = string_to_timeframe(&de_kline.interval)
@@ -695,17 +714,26 @@ pub async fn fetch_klines(
     let value: ApiResponse =
         sonic_rs::from_str(&response_text).map_err(|e| AdapterError::ParseError(e.to_string()))?;
 
+    let size_in_quote_currency = SIZE_IN_QUOTE_CURRENCY.get() == Some(&true);
+
     let klines: Result<Vec<Kline>, AdapterError> = value
         .result
         .list
         .iter()
         .map(|kline| {
             let time = parse_kline_field::<u64>(kline[0].as_str())?;
+
             let open = parse_kline_field::<f32>(kline[1].as_str())?;
             let high = parse_kline_field::<f32>(kline[2].as_str())?;
             let low = parse_kline_field::<f32>(kline[3].as_str())?;
             let close = parse_kline_field::<f32>(kline[4].as_str())?;
-            let volume = parse_kline_field::<f32>(kline[5].as_str())?;
+
+            let mut volume = parse_kline_field::<f32>(kline[5].as_str())?;
+            volume = if size_in_quote_currency {
+                (volume * close).round()
+            } else {
+                volume
+            };
 
             Ok(Kline {
                 time,

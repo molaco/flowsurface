@@ -1,7 +1,7 @@
 use super::{
     super::{
-        Exchange, Kline, MarketKind, OpenInterest, StreamKind, Ticker, TickerInfo, TickerStats,
-        Timeframe, Trade,
+        Exchange, Kline, MarketKind, OpenInterest, SIZE_IN_QUOTE_CURRENCY, StreamKind, Ticker,
+        TickerInfo, TickerStats, Timeframe, Trade,
         connect::{State, setup_tcp_connection, setup_tls_connection, setup_websocket_connection},
         de_string_to_f32,
         depth::{DepthPayload, DepthUpdate, LocalDepthCache, Order},
@@ -353,6 +353,7 @@ pub fn connect_market_stream(ticker: Ticker) -> impl Stream<Item = Event> {
         };
 
         let contract_size = get_contract_size(&ticker, market);
+        let size_in_quote_currency = SIZE_IN_QUOTE_CURRENCY.get() == Some(&true);
 
         loop {
             match &mut state {
@@ -412,9 +413,14 @@ pub fn connect_market_stream(ticker: Ticker) -> impl Stream<Item = Event> {
                                                 time: de_trade.time,
                                                 is_sell: de_trade.is_sell,
                                                 price: de_trade.price,
-                                                qty: contract_size.map_or(de_trade.qty, |size| {
-                                                    de_trade.qty * size
-                                                }),
+                                                qty: contract_size.map_or(
+                                                    if size_in_quote_currency {
+                                                        (de_trade.qty * de_trade.price).round()
+                                                    } else {
+                                                        de_trade.qty
+                                                    },
+                                                    |size| de_trade.qty * size,
+                                                ),
                                             };
 
                                             trades_buffer.push(trade);
@@ -635,6 +641,11 @@ pub fn connect_kline_stream(
 
                                     if let Some(c_size) = get_contract_size(&ticker, market) {
                                         (buy_volume * c_size, sell_volume * c_size)
+                                    } else if SIZE_IN_QUOTE_CURRENCY.get() == Some(&true) {
+                                        (
+                                            (buy_volume * de_kline.close).round(),
+                                            (sell_volume * de_kline.close).round(),
+                                        )
                                     } else {
                                         (buy_volume, sell_volume)
                                     }
@@ -710,6 +721,8 @@ fn new_depth_cache(depth: &SonicDepth, contract_size: Option<f32>) -> DepthPaylo
         SonicDepth::Perp(de) => (de.time, de.final_id, &de.bids, &de.asks),
     };
 
+    let size_in_quote_currency = SIZE_IN_QUOTE_CURRENCY.get() == Some(&true);
+
     DepthPayload {
         last_update_id: final_id,
         time,
@@ -717,14 +730,28 @@ fn new_depth_cache(depth: &SonicDepth, contract_size: Option<f32>) -> DepthPaylo
             .iter()
             .map(|x| Order {
                 price: x.price,
-                qty: contract_size.map_or(x.qty, |size| x.qty * size),
+                qty: contract_size.map_or(
+                    if size_in_quote_currency {
+                        (x.qty * x.price).round()
+                    } else {
+                        x.qty
+                    },
+                    |size| x.qty * size,
+                ),
             })
             .collect(),
         asks: asks
             .iter()
             .map(|x| Order {
                 price: x.price,
-                qty: contract_size.map_or(x.qty, |size| x.qty * size),
+                qty: contract_size.map_or(
+                    if size_in_quote_currency {
+                        (x.qty * x.price).round()
+                    } else {
+                        x.qty
+                    },
+                    |size| x.qty * size,
+                ),
             })
             .collect(),
     }
@@ -890,6 +917,8 @@ pub async fn fetch_klines(
     let fetched_klines: Vec<FetchedKlines> = serde_json::from_str(&text)
         .map_err(|e| AdapterError::ParseError(format!("Failed to parse klines: {e}")))?;
 
+    let size_in_quote_currency = SIZE_IN_QUOTE_CURRENCY.get() == Some(&true);
+
     let klines: Vec<_> = fetched_klines
         .into_iter()
         .map(|k| Kline {
@@ -900,8 +929,17 @@ pub async fn fetch_klines(
             close: k.4,
             volume: match market_type {
                 MarketKind::Spot | MarketKind::LinearPerps => {
-                    let sell_volume = k.5 - k.9;
-                    (k.9, sell_volume)
+                    let sell_volume = if size_in_quote_currency {
+                        ((k.5 - k.9) * k.4).round()
+                    } else {
+                        k.5 - k.9
+                    };
+                    let buy_volume = if size_in_quote_currency {
+                        (k.9 * k.4).round()
+                    } else {
+                        k.9
+                    };
+                    (buy_volume, sell_volume)
                 }
                 MarketKind::InversePerps => {
                     let contract_size = if symbol_str == "BTCUSD_PERP" {
@@ -1257,13 +1295,19 @@ pub async fn fetch_intraday_trades(ticker: Ticker, from: u64) -> Result<Vec<Trad
         let de_trades: Vec<SonicTrade> = sonic_rs::from_str(&text)
             .map_err(|e| AdapterError::ParseError(format!("Failed to parse trades: {e}")))?;
 
+        let size_in_quote_currency = SIZE_IN_QUOTE_CURRENCY.get() == Some(&true);
+
         de_trades
             .into_iter()
             .map(|de_trade| Trade {
                 time: de_trade.time,
                 is_sell: de_trade.is_sell,
                 price: de_trade.price,
-                qty: de_trade.qty,
+                qty: if size_in_quote_currency {
+                    (de_trade.qty * de_trade.price).round()
+                } else {
+                    de_trade.qty
+                },
             })
             .collect()
     };
@@ -1327,6 +1371,8 @@ pub async fn get_hist_trades(
             let mut archive = zip::ZipArchive::new(file)
                 .map_err(|e| AdapterError::ParseError(format!("Failed to unzip file: {e}")))?;
 
+            let size_in_quote_currency = SIZE_IN_QUOTE_CURRENCY.get() == Some(&true);
+
             let mut trades = Vec::new();
             for i in 0..archive.len() {
                 let csv_file = archive
@@ -1342,7 +1388,14 @@ pub async fn get_hist_trades(
                         let time = record[5].parse::<u64>().ok()?;
                         let is_sell = record[6].parse::<bool>().ok()?;
                         let price = str_f32_parse(&record[1]);
-                        let qty = str_f32_parse(&record[2]);
+
+                        let mut qty = str_f32_parse(&record[2]);
+
+                        qty = if size_in_quote_currency {
+                            (qty * price).round()
+                        } else {
+                            qty
+                        };
 
                         Some(Trade {
                             time,
