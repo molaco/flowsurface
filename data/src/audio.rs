@@ -1,7 +1,10 @@
 use exchange::SerTicker;
 use rodio::{Decoder, OutputStream, OutputStreamHandle, Source};
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
+use std::{
+    collections::HashMap,
+    time::{Duration, Instant},
+};
 
 use crate::util::ok_or_default;
 
@@ -18,11 +21,43 @@ pub const HARD_SELL_SOUND: &str = "fall-on-foam-splash.wav";
 
 pub const DEFAULT_SOUNDS: &[&str] = &[BUY_SOUND, SELL_SOUND, HARD_BUY_SOUND, HARD_SELL_SOUND];
 
+const OVERLAP_THRESHOLD: Duration = Duration::from_millis(10);
+
+#[derive(Clone, Copy)]
+pub enum SoundType {
+    Buy = 0,
+    HardBuy = 1,
+    Sell = 2,
+    HardSell = 3,
+}
+
+impl std::fmt::Display for SoundType {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::Buy => BUY_SOUND,
+                Self::HardBuy => HARD_BUY_SOUND,
+                Self::Sell => SELL_SOUND,
+                Self::HardSell => HARD_SELL_SOUND,
+            }
+        )
+    }
+}
+
+impl From<SoundType> for usize {
+    fn from(sound_type: SoundType) -> Self {
+        sound_type as usize
+    }
+}
+
 pub struct SoundCache {
     _stream: OutputStream,
     stream_handle: OutputStreamHandle,
-    sample_buffers: HashMap<String, rodio::buffer::SamplesBuffer<i16>>,
     volume: Option<f32>,
+    sample_buffers: [Option<rodio::buffer::SamplesBuffer<i16>>; 4],
+    last_played: [(Option<Instant>, usize); 4],
 }
 
 impl SoundCache {
@@ -35,25 +70,31 @@ impl SoundCache {
         Ok(SoundCache {
             _stream: stream,
             stream_handle,
-            sample_buffers: HashMap::new(),
             volume,
+            sample_buffers: [None, None, None, None],
+            last_played: [(None, 0), (None, 0), (None, 0), (None, 0)],
         })
     }
 
     pub fn with_default_sounds(volume: Option<f32>) -> Result<Self, String> {
         let mut cache = Self::new(volume)?;
 
-        for path in DEFAULT_SOUNDS {
-            if let Err(e) = cache.load_sound_from_memory(
-                path,
-                match *path {
-                    BUY_SOUND => BUY_SOUND_DATA,
-                    HARD_BUY_SOUND => HARD_BUY_SOUND_DATA,
-                    SELL_SOUND => SELL_SOUND_DATA,
-                    HARD_SELL_SOUND => HARD_SELL_SOUND_DATA,
-                    _ => unreachable!(),
-                },
-            ) {
+        let sound_types = [
+            SoundType::Buy,
+            SoundType::HardBuy,
+            SoundType::Sell,
+            SoundType::HardSell,
+        ];
+
+        for sound_type in &sound_types {
+            let (path, data) = match sound_type {
+                SoundType::Buy => (BUY_SOUND, BUY_SOUND_DATA),
+                SoundType::HardBuy => (HARD_BUY_SOUND, HARD_BUY_SOUND_DATA),
+                SoundType::Sell => (SELL_SOUND, SELL_SOUND_DATA),
+                SoundType::HardSell => (HARD_SELL_SOUND, HARD_SELL_SOUND_DATA),
+            };
+
+            if let Err(e) = cache.load_sound_from_memory(sound_type.clone(), data) {
                 return Err(format!("Failed to load default sound '{}': {}", path, e));
             }
         }
@@ -61,8 +102,14 @@ impl SoundCache {
         Ok(cache)
     }
 
-    pub fn load_sound_from_memory(&mut self, path: &str, data: &[u8]) -> Result<(), String> {
-        if self.sample_buffers.contains_key(path) {
+    pub fn load_sound_from_memory(
+        &mut self,
+        sound_type: SoundType,
+        data: &[u8],
+    ) -> Result<(), String> {
+        let index = sound_type as usize;
+
+        if self.sample_buffers[index].is_some() {
             return Ok(());
         }
 
@@ -78,27 +125,48 @@ impl SoundCache {
             decoder.collect::<Vec<i16>>(),
         );
 
-        self.sample_buffers.insert(path.to_string(), sample_buffer);
+        self.sample_buffers[index] = Some(sample_buffer);
         Ok(())
     }
 
-    pub fn play(&self, path: &str) -> Result<(), String> {
-        let Some(volume) = self.volume else {
+    pub fn play(&mut self, sound_type: SoundType) -> Result<(), String> {
+        let Some(base_volume) = self.volume else {
             return Ok(());
         };
 
-        let buffer = self
-            .sample_buffers
-            .get(path)
-            .ok_or(format!("Sound '{}' not loaded in cache", path))?;
+        let index = usize::from(sound_type);
+
+        let Some(buffer) = self.sample_buffers[index].as_ref() else {
+            return Err(format!("Sound '{}' not loaded", sound_type.to_string()));
+        };
+
+        let now = Instant::now();
+        let (last_time, count) = &mut self.last_played[index];
+
+        let overlap_count = if let Some(last) = last_time {
+            if now.duration_since(*last) < OVERLAP_THRESHOLD {
+                *count += 1;
+                *last = now;
+                *count
+            } else {
+                *last = now;
+                *count = 1;
+                1
+            }
+        } else {
+            *last_time = Some(now);
+            *count = 1;
+            1
+        };
+
+        let adjusted_volume = base_volume / (overlap_count as f32);
 
         let sink = match rodio::Sink::try_new(&self.stream_handle) {
             Ok(sink) => sink,
             Err(err) => return Err(format!("Failed to create audio sink: {}", err)),
         };
 
-        sink.set_volume(volume / 100.0);
-
+        sink.set_volume(adjusted_volume / 100.0);
         sink.append(buffer.clone());
         sink.detach();
 

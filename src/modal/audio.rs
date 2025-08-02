@@ -1,7 +1,7 @@
 use crate::TooltipPosition;
 use crate::style::{self, icon_text};
 use crate::widget::{labeled_slider, tooltip};
-use data::audio::{SoundCache, StreamCfg};
+use data::audio::{SoundCache, SoundType, StreamCfg};
 use exchange::adapter::{Exchange, StreamKind};
 
 use exchange::Trade;
@@ -206,7 +206,7 @@ impl AudioStream {
         self.cache.get_volume()
     }
 
-    pub fn play(&self, sound: &str) -> Result<(), String> {
+    pub fn play(&mut self, sound: SoundType) -> Result<(), String> {
         self.cache.play(sound)
     }
 
@@ -241,7 +241,7 @@ impl AudioStream {
     }
 
     pub fn try_play_sound(
-        &self,
+        &mut self,
         stream: &StreamKind,
         trades_buffer: &[Trade],
     ) -> Result<(), String> {
@@ -267,14 +267,14 @@ impl AudioStream {
                 let sound = |count: usize, is_sell: bool| {
                     if count > (v * HARD_THRESHOLD) {
                         if is_sell {
-                            data::audio::HARD_SELL_SOUND
+                            data::audio::SoundType::HardSell
                         } else {
-                            data::audio::HARD_BUY_SOUND
+                            data::audio::SoundType::HardBuy
                         }
                     } else if is_sell {
-                        data::audio::SELL_SOUND
+                        data::audio::SoundType::Sell
                     } else {
-                        data::audio::BUY_SOUND
+                        data::audio::SoundType::Buy
                     }
                 };
 
