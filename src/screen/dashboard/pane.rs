@@ -996,8 +996,7 @@ impl Content {
         match &self {
             Content::Heatmap(chart, _) => Some(data::chart::Study::Heatmap(chart.studies.clone())),
             Content::Kline(chart, _) => chart.studies().map(data::chart::Study::Footprint),
-            Content::TimeAndSales(_) => None,
-            Content::Starter => None,
+            Content::TimeAndSales(_) | Content::Starter => None,
         }
     }
 
@@ -1052,11 +1051,11 @@ impl PartialEq for Content {
     }
 }
 
-fn link_group_modal<'a>(
-    base: Element<'a, Message>,
+fn link_group_modal(
+    base: Element<Message>,
     pane: pane_grid::Pane,
     selected_group: Option<LinkGroup>,
-) -> Element<'a, Message> {
+) -> Element<Message> {
     let mut grid = column![].spacing(4);
     let rows = LinkGroup::ALL.chunks(3);
 

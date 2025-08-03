@@ -46,7 +46,7 @@ pub enum AxisScaleClicked {
     Y,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Copy)]
 pub enum Message {
     Translated(Vector),
     Scaled(f32, Vector),
@@ -256,9 +256,7 @@ fn canvas_interaction<T: Chart>(
             }
         }
         Event::Keyboard(keyboard_event) => {
-            if cursor_position.is_none() {
-                return None;
-            }
+            cursor_position?;
             match keyboard_event {
                 iced::keyboard::Event::KeyPressed { key, .. } => match key.as_ref() {
                     keyboard::Key::Named(keyboard::key::Named::Shift) => {
@@ -283,7 +281,7 @@ pub enum Action {
     FetchRequested(uuid::Uuid, FetchRange),
 }
 
-pub fn update<T: Chart>(chart: &mut T, message: Message) {
+pub fn update<T: Chart>(chart: &mut T, message: &Message) {
     match message {
         Message::DoubleClick(scale) => {
             let default_chart_width = T::default_cell_width(chart);
@@ -313,14 +311,14 @@ pub fn update<T: Chart>(chart: &mut T, message: Message) {
             if let Some(Autoscale::FitToVisible) = state.layout.autoscale {
                 state.translation.x = translation.x;
             } else {
-                state.translation = translation;
+                state.translation = *translation;
                 state.layout.autoscale = None;
             }
         }
         Message::Scaled(scaling, translation) => {
             let state = chart.mut_state();
-            state.scaling = scaling;
-            state.translation = translation;
+            state.scaling = *scaling;
+            state.translation = *translation;
 
             state.layout.autoscale = None;
         }
@@ -353,8 +351,8 @@ pub fn update<T: Chart>(chart: &mut T, message: Message) {
 
             let state = chart.mut_state();
 
-            if !(delta < 0.0 && state.cell_width > min_cell_width
-                || delta > 0.0 && state.cell_width < max_cell_width)
+            if !(*delta < 0.0 && state.cell_width > min_cell_width
+                || *delta > 0.0 && state.cell_width < max_cell_width)
             {
                 return;
             }
@@ -364,7 +362,7 @@ pub fn update<T: Chart>(chart: &mut T, message: Message) {
 
             let zoom_factor = if is_fit_to_visible_zoom {
                 ZOOM_SENSITIVITY / 1.5
-            } else if is_wheel_scroll {
+            } else if *is_wheel_scroll {
                 ZOOM_SENSITIVITY
             } else {
                 ZOOM_SENSITIVITY * 3.0
@@ -399,7 +397,7 @@ pub fn update<T: Chart>(chart: &mut T, message: Message) {
                 let is_interval_x_visible = state.is_interval_x_visible(latest_x);
 
                 let cursor_chart_x = {
-                    if is_wheel_scroll || !is_interval_x_visible {
+                    if *is_wheel_scroll || !is_interval_x_visible {
                         cursor_to_center_x / old_scaling - old_translation_x
                     } else {
                         latest_x / old_scaling - old_translation_x
@@ -421,7 +419,7 @@ pub fn update<T: Chart>(chart: &mut T, message: Message) {
                     }
                 };
 
-                if is_wheel_scroll || !is_interval_x_visible {
+                if *is_wheel_scroll || !is_interval_x_visible {
                     if !new_cursor_x.is_nan() && !cursor_chart_x.is_nan() {
                         state.translation.x -= new_cursor_x - cursor_chart_x;
                     }
@@ -440,12 +438,12 @@ pub fn update<T: Chart>(chart: &mut T, message: Message) {
                 state.layout.autoscale = None;
             }
 
-            if delta < 0.0 && state.cell_height > min_cell_height
-                || delta > 0.0 && state.cell_height < max_cell_height
+            if *delta < 0.0 && state.cell_height > min_cell_height
+                || *delta > 0.0 && state.cell_height < max_cell_height
             {
                 let (old_scaling, old_translation_y) = { (state.scaling, state.translation.y) };
 
-                let zoom_factor = if is_wheel_scroll {
+                let zoom_factor = if *is_wheel_scroll {
                     ZOOM_SENSITIVITY
                 } else {
                     ZOOM_SENSITIVITY * 3.0
@@ -464,7 +462,7 @@ pub fn update<T: Chart>(chart: &mut T, message: Message) {
 
                 state.translation.y -= new_cursor_y - cursor_chart_y;
 
-                if is_wheel_scroll {
+                if *is_wheel_scroll {
                     state.layout.autoscale = None;
                 }
             }
@@ -477,7 +475,7 @@ pub fn update<T: Chart>(chart: &mut T, message: Message) {
             let new_center_x = bounds.width / 2.0;
             let center_delta_x = (new_center_x - old_center_x) / state.scaling;
 
-            state.bounds = bounds;
+            state.bounds = *bounds;
 
             if state.layout.autoscale != Some(Autoscale::CenterLatest) {
                 state.translation.x += center_delta_x;
@@ -486,7 +484,7 @@ pub fn update<T: Chart>(chart: &mut T, message: Message) {
         Message::SplitDragged(split, size) => {
             let state = chart.mut_state();
 
-            if let Some(split) = state.layout.splits.get_mut(split) {
+            if let Some(split) = state.layout.splits.get_mut(*split) {
                 *split = (size * 100.0).round() / 100.0;
             }
         }
@@ -810,10 +808,10 @@ impl ViewState {
             let price1 = self.y_to_price(snapped_p1_y);
             let price2 = self.y_to_price(snapped_p2_y);
 
-            let pct = if price1 != 0.0 {
-                ((price2 - price1) / price1) * 100.0
-            } else {
+            let pct = if price1 == 0.0 {
                 0.0
+            } else {
+                ((price2 - price1) / price1) * 100.0
             };
             let pct_text = format!("{:.2}%", pct);
 

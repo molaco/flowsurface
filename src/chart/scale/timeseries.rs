@@ -205,7 +205,7 @@ pub fn generate_time_labels(
 
 fn above_daily_labels_gen<Tz, Next, Format, Skip>(
     mut current: chrono::DateTime<Tz>,
-    end: chrono::DateTime<Tz>,
+    end: &chrono::DateTime<Tz>,
     x_min: u64,
     x_max: u64,
     axis_bounds: iced_core::Rectangle,
@@ -245,7 +245,7 @@ fn above_daily_labels_gen<Tz, Next, Format, Skip>(
             break;
         }
 
-        if current > end {
+        if current > *end {
             break;
         }
     }
@@ -266,12 +266,13 @@ fn daily_labels_gen(
     let current = start_utc_dt
         .date_naive()
         .and_hms_opt(0, 0, 0)
-        .map(|d| DateTime::<chrono::Utc>::from_naive_utc_and_offset(d, chrono::Utc))
-        .unwrap_or(start_utc_dt);
+        .map_or(start_utc_dt, |d| {
+            DateTime::<chrono::Utc>::from_naive_utc_and_offset(d, chrono::Utc)
+        });
 
     above_daily_labels_gen(
         current,
-        end_utc_dt,
+        &end_utc_dt,
         x_min,
         x_max,
         axis_bounds,
@@ -301,7 +302,7 @@ fn monthly_labels_gen(
 
     above_daily_labels_gen(
         current,
-        end_utc_dt,
+        &end_utc_dt,
         x_min,
         x_max,
         axis_bounds,
@@ -333,7 +334,7 @@ fn yearly_labels_gen(
 
     above_daily_labels_gen(
         current,
-        end_utc_dt,
+        &end_utc_dt,
         x_min,
         x_max,
         axis_bounds,

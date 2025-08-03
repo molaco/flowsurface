@@ -363,9 +363,10 @@ pub fn load_saved_state() -> SavedState {
                 sidebar: state.sidebar,
                 scale_factor: state.scale_factor,
                 audio_cfg: state.audio_cfg,
-                preferred_currency: match state.size_in_quote_currency {
-                    true => exchange::PreferredCurrency::Quote,
-                    false => exchange::PreferredCurrency::Base,
+                preferred_currency: if state.size_in_quote_currency {
+                    exchange::PreferredCurrency::Quote
+                } else {
+                    exchange::PreferredCurrency::Base
                 },
             }
         }

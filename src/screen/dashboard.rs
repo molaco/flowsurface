@@ -257,10 +257,10 @@ impl Dashboard {
                     if let Some(state) = self.get_mut_pane(main_window.id, window, pane) {
                         match state.content {
                             pane::Content::Heatmap(ref mut chart, _) => {
-                                chart::update(chart, msg);
+                                chart::update(chart, &msg);
                             }
                             pane::Content::Kline(ref mut chart, _) => {
-                                chart::update(chart, msg);
+                                chart::update(chart, &msg);
                             }
                             _ => {}
                         }
@@ -842,7 +842,7 @@ impl Dashboard {
     fn handle_error(
         &mut self,
         pane_id: Option<uuid::Uuid>,
-        err: DashboardError,
+        err: &DashboardError,
         main_window: window::Id,
     ) -> Task<Message> {
         match pane_id {
@@ -1009,7 +1009,7 @@ impl Dashboard {
                     if let Err(reason) =
                         self.insert_fetched_trades(main_window, pane_id, &batch, false)
                     {
-                        return self.handle_error(Some(pane_id), reason, main_window);
+                        return self.handle_error(Some(pane_id), &reason, main_window);
                     }
                 } else {
                     let filtered_batch = batch
@@ -1021,7 +1021,7 @@ impl Dashboard {
                     if let Err(reason) =
                         self.insert_fetched_trades(main_window, pane_id, &filtered_batch, true)
                     {
-                        return self.handle_error(Some(pane_id), reason, main_window);
+                        return self.handle_error(Some(pane_id), &reason, main_window);
                     }
                 }
             }

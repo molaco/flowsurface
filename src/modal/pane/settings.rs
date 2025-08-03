@@ -617,7 +617,7 @@ pub mod study {
                     ProfileKind::VisibleRange => {
                         let switch_kind = button(text("Switch to fixed window")).on_press(
                             on_change(HeatmapStudy::VolumeProfile(ProfileKind::FixedWindow(
-                                CLEANUP_THRESHOLD / 5 as usize,
+                                CLEANUP_THRESHOLD / 5_usize,
                             ))),
                         );
 

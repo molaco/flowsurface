@@ -29,6 +29,21 @@ pub enum MarketKind {
     InversePerps,
 }
 
+impl MarketKind {
+    pub fn qty_in_quote_value(&self, qty: f32, price: f32, size_in_quote_currency: bool) -> f32 {
+        match self {
+            MarketKind::InversePerps => qty,
+            _ => {
+                if size_in_quote_currency {
+                    qty
+                } else {
+                    price * qty
+                }
+            }
+        }
+    }
+}
+
 impl std::fmt::Display for MarketKind {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(

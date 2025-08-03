@@ -471,7 +471,7 @@ impl canvas::Program<Message> for AxisLabelsX<'_> {
                             };
                             let snap_x = snap_ratio * bounds.width;
 
-                            if last_x.map_or(true, |lx| (snap_x - lx).abs() >= target_spacing) {
+                            if last_x.is_none_or(|lx| (snap_x - lx).abs() >= target_spacing) {
                                 let label_text = self.timezone.format_timestamp(
                                     (*timestamp / 1000) as i64,
                                     exchange::Timeframe::MS100,

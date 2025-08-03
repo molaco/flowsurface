@@ -5,7 +5,6 @@ use crate::style;
 pub use data::chart::timeandsales::Config;
 use data::chart::timeandsales::TradeDisplay;
 use data::config::theme::{darken, lighten};
-use exchange::adapter::MarketKind;
 use exchange::{TickerInfo, Trade};
 
 use iced::widget::canvas::{self, Text};
@@ -104,16 +103,11 @@ impl TimeAndSales {
                     is_sell: trade.is_sell,
                 };
 
-                let trade_size = match market_type {
-                    MarketKind::InversePerps => converted_trade.qty,
-                    _ => {
-                        if size_in_quote_currency {
-                            converted_trade.qty
-                        } else {
-                            converted_trade.qty * converted_trade.price
-                        }
-                    }
-                };
+                let trade_size = market_type.qty_in_quote_value(
+                    converted_trade.qty,
+                    converted_trade.price,
+                    size_in_quote_currency,
+                );
 
                 if trade_size >= size_filter {
                     self.max_filtered_qty = self.max_filtered_qty.max(converted_trade.qty);
@@ -132,16 +126,8 @@ impl TimeAndSales {
                 self.max_filtered_qty = self.recent_trades[drain_amount..]
                     .iter()
                     .filter(|t| {
-                        let trade_size = match market_type {
-                            MarketKind::InversePerps => t.qty,
-                            _ => {
-                                if size_in_quote_currency {
-                                    t.qty
-                                } else {
-                                    t.qty * t.price
-                                }
-                            }
-                        };
+                        let trade_size =
+                            market_type.qty_in_quote_value(t.qty, t.price, size_in_quote_currency);
                         trade_size >= size_filter
                     })
                     .map(|t| t.qty)
@@ -292,16 +278,8 @@ impl canvas::Program<Message> for TimeAndSales {
                 .recent_trades
                 .iter()
                 .filter(|t| {
-                    let trade_size = match market_type {
-                        MarketKind::InversePerps => t.qty,
-                        _ => {
-                            if size_in_quote_currency {
-                                t.qty
-                            } else {
-                                t.qty * t.price
-                            }
-                        }
-                    };
+                    let trade_size =
+                        market_type.qty_in_quote_value(t.qty, t.price, size_in_quote_currency);
                     trade_size >= self.config.trade_size_filter
                 })
                 .rev()

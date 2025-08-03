@@ -291,7 +291,7 @@ impl TickersTable {
         let tickers_set: HashSet<_> = self
             .tickers_info
             .get(&exchange)
-            .map(|info| info.keys().cloned().collect())
+            .map(|info| info.keys().copied().collect())
             .unwrap_or_default();
 
         let filtered_tickers_stats = stats

@@ -82,7 +82,7 @@ impl DataPoint for HeatmapDataPoint {
     }
 
     fn last_price(&self) -> f32 {
-        self.grouped_trades.last().map(|t| t.price).unwrap_or(0.0)
+        self.grouped_trades.last().map_or(0.0, |t| t.price)
     }
 
     fn kline(&self) -> Option<&exchange::Kline> {
@@ -318,16 +318,11 @@ impl HistoricalDepth {
                     if !(run_ref.until_time >= earliest && run_ref.start_time <= latest) {
                         return false;
                     }
-                    let order_size = match market_type {
-                        MarketKind::InversePerps => run_ref.qty(),
-                        _ => {
-                            if size_in_quote_currency {
-                                run_ref.qty()
-                            } else {
-                                price_at_level.into_inner() * run_ref.qty()
-                            }
-                        }
-                    };
+                    let order_size = market_type.qty_in_quote_value(
+                        run_ref.qty(),
+                        **price_at_level,
+                        size_in_quote_currency,
+                    );
                     order_size > order_size_filter
                 })
                 .collect::<Vec<&OrderRun>>();
@@ -479,10 +474,11 @@ impl HistoricalDepth {
                     .filter_map(|run| {
                         let visible_run = run.with_range(earliest, latest)?;
 
-                        let order_size = match market_type {
-                            MarketKind::InversePerps => visible_run.qty(),
-                            _ => **price * visible_run.qty(),
-                        };
+                        let order_size = market_type.qty_in_quote_value(
+                            visible_run.qty(),
+                            **price,
+                            exchange::SIZE_IN_QUOTE_CURRENCY.get() == Some(&true),
+                        );
 
                         if order_size > order_size_filter {
                             Some(visible_run)

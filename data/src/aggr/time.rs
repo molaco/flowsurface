@@ -37,7 +37,7 @@ impl<D: DataPoint> TimeSeries<D> {
         self.datapoints
             .values()
             .last()
-            .map_or(0.0, |dp| dp.last_price())
+            .map_or(0.0, DataPoint::last_price)
     }
 
     pub fn latest_timestamp(&self) -> Option<u64> {

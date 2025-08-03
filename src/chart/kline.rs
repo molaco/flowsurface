@@ -1,8 +1,7 @@
 use super::{
-    Action, Basis, Caches, Chart, Interaction, Message, PlotConstants, PlotData, ViewState,
-    indicator, request_fetch, scale::linear::PriceInfoLabel,
+    Action, Basis, Caches, Chart, Interaction, Message, PlotConstants, PlotData, TEXT_SIZE,
+    ViewState, indicator, request_fetch, scale::linear::PriceInfoLabel,
 };
-use crate::chart::TEXT_SIZE;
 use crate::{modal::pane::settings::study, style};
 use data::aggr::ticks::TickAggr;
 use data::aggr::time::TimeSeries;
@@ -1620,15 +1619,15 @@ fn draw_crosshair_tooltip(
             .find(|(time, _)| **time == at_interval)
             .map(|(_, dp)| &dp.kline)
             .or_else(|| {
-                if !timeseries.datapoints.is_empty() {
+                if timeseries.datapoints.is_empty() {
+                    None
+                } else {
                     let (last_time, dp) = timeseries.datapoints.last_key_value()?;
                     if at_interval > *last_time {
                         Some(&dp.kline)
                     } else {
                         None
                     }
-                } else {
-                    None
                 }
             }),
         PlotData::TickBased(tick_aggr) => {

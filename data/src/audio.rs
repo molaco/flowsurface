@@ -94,7 +94,7 @@ impl SoundCache {
                 SoundType::HardSell => (HARD_SELL_SOUND, HARD_SELL_SOUND_DATA),
             };
 
-            if let Err(e) = cache.load_sound_from_memory(sound_type.clone(), data) {
+            if let Err(e) = cache.load_sound_from_memory(*sound_type, data) {
                 return Err(format!("Failed to load default sound '{}': {}", path, e));
             }
         }
@@ -137,7 +137,7 @@ impl SoundCache {
         let index = usize::from(sound_type);
 
         let Some(buffer) = self.sample_buffers[index].as_ref() else {
-            return Err(format!("Sound '{}' not loaded", sound_type.to_string()));
+            return Err(format!("Sound '{sound_type}' not loaded",));
         };
 
         let now = Instant::now();

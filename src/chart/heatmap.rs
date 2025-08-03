@@ -1,25 +1,21 @@
-use super::{Chart, Interaction, Message, PlotConstants, ViewState, scale::linear::PriceInfoLabel};
+use super::{
+    Chart, Interaction, Message, PlotConstants, TEXT_SIZE, ViewState, scale::linear::PriceInfoLabel,
+};
 use crate::{
-    chart::TEXT_SIZE,
     modal::pane::settings::study::{self, Study},
     style,
 };
-use data::{
-    aggr::time::DataPoint,
-    util::{abbr_large_numbers, count_decimals},
-};
-use data::{
-    aggr::time::TimeSeries,
-    chart::{
-        Basis, ViewConfig,
-        heatmap::{
-            CLEANUP_THRESHOLD, Config, HeatmapDataPoint, HeatmapStudy, HistoricalDepth,
-            ProfileKind, QtyScale,
-        },
-        indicator::HeatmapIndicator,
+use data::aggr::time::{DataPoint, TimeSeries};
+use data::chart::{
+    Basis, ViewConfig,
+    heatmap::{
+        CLEANUP_THRESHOLD, Config, HeatmapDataPoint, HeatmapStudy, HistoricalDepth, ProfileKind,
+        QtyScale,
     },
+    indicator::HeatmapIndicator,
 };
-use exchange::{SIZE_IN_QUOTE_CURRENCY, TickerInfo, Trade, adapter::MarketKind, depth::Depth};
+use data::util::{abbr_large_numbers, count_decimals};
+use exchange::{SIZE_IN_QUOTE_CURRENCY, TickerInfo, Trade, depth::Depth};
 
 use iced::widget::canvas::{self, Event, Geometry, Path};
 use iced::{
@@ -548,16 +544,11 @@ impl canvas::Program<Message> for HeatmapChart {
 
                         runs.iter()
                             .filter(|run| {
-                                let order_size = match market_type {
-                                    MarketKind::InversePerps => run.qty(),
-                                    _ => {
-                                        if size_in_quote_currency {
-                                            run.qty()
-                                        } else {
-                                            **price * run.qty()
-                                        }
-                                    }
-                                };
+                                let order_size = market_type.qty_in_quote_value(
+                                    run.qty(),
+                                    **price,
+                                    size_in_quote_currency,
+                                );
                                 order_size > self.visual_config.order_size_filter
                             })
                             .for_each(|run| {
@@ -627,16 +618,11 @@ impl canvas::Program<Message> for HeatmapChart {
                     dp.grouped_trades.iter().for_each(|trade| {
                         let y_position = chart.price_to_y(trade.price);
 
-                        let trade_size = match market_type {
-                            MarketKind::InversePerps => trade.qty,
-                            _ => {
-                                if size_in_quote_currency {
-                                    trade.qty
-                                } else {
-                                    trade.qty * trade.price
-                                }
-                            }
-                        };
+                        let trade_size = market_type.qty_in_quote_value(
+                            trade.qty,
+                            trade.price,
+                            size_in_quote_currency,
+                        );
 
                         if trade_size > self.visual_config.trade_size_filter {
                             let color = if trade.is_sell {
@@ -936,7 +922,7 @@ fn draw_volume_profile(
     timeseries: &TimeSeries<HeatmapDataPoint>,
     area_width: f32,
 ) {
-    let (highest, lowest) = chart.price_range(&region);
+    let (highest, lowest) = chart.price_range(region);
 
     let time_range = match kind {
         ProfileKind::VisibleRange => {
