@@ -114,11 +114,12 @@ fn canvas_interaction<T: Chart>(
 
     match event {
         Event::Mouse(mouse_event) => {
-            let cursor_position = cursor_position?;
             let state = chart.state();
 
             match mouse_event {
                 mouse::Event::ButtonPressed(button) => {
+                    let cursor_in_bounds = cursor_position?;
+
                     if let mouse::Button::Left = button {
                         match interaction {
                             Interaction::None
@@ -126,12 +127,12 @@ fn canvas_interaction<T: Chart>(
                             | Interaction::Zoomin { .. } => {
                                 *interaction = Interaction::Panning {
                                     translation: state.translation,
-                                    start: cursor_position,
+                                    start: cursor_in_bounds,
                                 };
                             }
                             Interaction::Ruler { start } if start.is_none() => {
                                 *interaction = Interaction::Ruler {
-                                    start: Some(cursor_position),
+                                    start: Some(cursor_in_bounds),
                                 };
                             }
                             Interaction::Ruler { .. } => {
@@ -141,26 +142,22 @@ fn canvas_interaction<T: Chart>(
                     }
                     Some(canvas::Action::request_redraw().and_capture())
                 }
-                mouse::Event::CursorMoved { .. } => {
-                    let message = match *interaction {
-                        Interaction::Panning { translation, start } => Some(Message::Translated(
-                            translation + (cursor_position - start) * (1.0 / state.scaling),
-                        )),
-                        Interaction::None | Interaction::Ruler { .. } => {
-                            Some(Message::CrosshairMoved)
-                        }
-                        _ => None,
-                    };
-
-                    let action =
-                        message.map_or(canvas::Action::request_redraw(), canvas::Action::publish);
-
-                    Some(match interaction {
-                        Interaction::None | Interaction::Ruler { .. } => action,
-                        _ => action.and_capture(),
-                    })
-                }
+                mouse::Event::CursorMoved { .. } => match *interaction {
+                    Interaction::Panning { translation, start } => {
+                        let cursor_in_bounds = cursor_position?;
+                        let msg = Message::Translated(
+                            translation + (cursor_in_bounds - start) * (1.0 / state.scaling),
+                        );
+                        Some(canvas::Action::publish(msg).and_capture())
+                    }
+                    Interaction::None | Interaction::Ruler { .. } => {
+                        Some(canvas::Action::publish(Message::CrosshairMoved))
+                    }
+                    _ => None,
+                },
                 mouse::Event::WheelScrolled { delta } => {
+                    cursor_position?;
+
                     let default_cell_width = T::default_cell_width(chart);
                     let min_cell_width = T::min_cell_width(chart);
                     let max_cell_width = T::max_cell_width(chart);

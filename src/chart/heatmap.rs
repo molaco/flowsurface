@@ -470,14 +470,12 @@ impl canvas::Program<Message> for HeatmapChart {
             None => return vec![],
         };
 
-        let center = Vector::new(bounds.width / 2.0, bounds.height / 2.0);
         let bounds_size = bounds.size();
-
         let palette = theme.extended_palette();
 
-        let volume_indicator = self.indicators.contains_key(&HeatmapIndicator::Volume);
-
         let heatmap = chart.cache.main.draw(renderer, bounds_size, |frame| {
+            let center = Vector::new(bounds.width / 2.0, bounds.height / 2.0);
+
             frame.translate(center);
             frame.scale(chart.scaling);
             frame.translate(chart.translation);
@@ -499,6 +497,8 @@ impl canvas::Program<Message> for HeatmapChart {
                 (qty_scales.max_aggr_volume, qty_scales.max_trade_qty);
 
             let size_in_quote_currency = SIZE_IN_QUOTE_CURRENCY.get() == Some(&true);
+
+            let volume_indicator = self.indicators.contains_key(&HeatmapIndicator::Volume);
 
             if let Some(merge_strat) = self.visual_config().coalescing {
                 let coalesced_visual_runs = self.heatmap.coalesced_runs(

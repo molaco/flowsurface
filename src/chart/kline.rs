@@ -923,12 +923,12 @@ impl canvas::Program<Message> for KlineChart {
             return vec![];
         }
 
-        let center = Vector::new(bounds.width / 2.0, bounds.height / 2.0);
         let bounds_size = bounds.size();
-
         let palette = theme.extended_palette();
 
         let klines = chart.cache.main.draw(renderer, bounds_size, |frame| {
+            let center = Vector::new(bounds.width / 2.0, bounds.height / 2.0);
+
             frame.translate(center);
             frame.scale(chart.scaling);
             frame.translate(chart.translation);
