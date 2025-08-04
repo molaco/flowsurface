@@ -25,7 +25,11 @@ pub fn indicator_elem<'a>(
                 }
                 datapoints
                     .range(earliest..=latest)
-                    .map(|(_, (buy, sell))| buy.max(*sell))
+                    .map(
+                        |(_, (buy, sell))| {
+                            if *buy == -1.0 { *sell } else { buy + sell }
+                        },
+                    )
                     .max_by(|a, b| a.partial_cmp(b).unwrap())
                     .unwrap_or(0.0)
             }
@@ -40,7 +44,12 @@ pub fn indicator_elem<'a>(
                     .enumerate()
                     .filter(|(index, _)| *index <= latest && *index >= earliest)
                     .for_each(|(_, (_, (buy_volume, sell_volume)))| {
-                        max_volume = max_volume.max(buy_volume.max(*sell_volume));
+                        let total = if *buy_volume == -1.0 {
+                            *sell_volume
+                        } else {
+                            buy_volume + sell_volume
+                        };
+                        max_volume = max_volume.max(total);
                     });
 
                 max_volume
