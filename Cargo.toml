@@ -29,7 +29,8 @@ uuid = { version = "1.11.0", features = ["v4"] }
 iced = { version = "0.14.0-dev", default-features = false, features = [
     "wgpu",
     "lazy",
-    "tokio", 
+    "tokio",
+    "crisp",
     "canvas",
     "sipper",
     "advanced",
@@ -55,6 +56,6 @@ data = { version = "0.1.0", path = "data" }
 debug = ["iced/hot"]
 
 [patch.crates-io]
-iced = { git = "https://github.com/iced-rs/iced", rev = "71b0b6ae07e969a513c6380dfa4712e66caeee66" }
-iced_futures = { git = "https://github.com/iced-rs/iced", rev = "71b0b6ae07e969a513c6380dfa4712e66caeee66" }
-iced_core = { git = "https://github.com/iced-rs/iced", rev = "71b0b6ae07e969a513c6380dfa4712e66caeee66"}
+iced = { git = "https://github.com/iced-rs/iced", rev = "3f22d5683a03f0bc7006744b04a50b4bc38f2918" }
+iced_futures = { git = "https://github.com/iced-rs/iced", rev = "3f22d5683a03f0bc7006744b04a50b4bc38f2918" }
+iced_core = { git = "https://github.com/iced-rs/iced", rev = "3f22d5683a03f0bc7006744b04a50b4bc38f2918"}
