@@ -23,8 +23,9 @@ use iced::{
 const ACTIVE_UPDATE_INTERVAL: u64 = 13;
 const INACTIVE_UPDATE_INTERVAL: u64 = 300;
 
+/// Number of extra cards to render for visibility during scrolling
+const OVERSCAN_BUFFER: isize = 3;
 const TICKER_CARD_HEIGHT: f32 = 64.0;
-const SEARCH_BAR_HEIGHT: f32 = 120.0;
 
 pub fn fetch_tickers_info() -> Task<Message> {
     let fetch_tasks = Exchange::ALL
@@ -54,7 +55,7 @@ pub enum TickerTab {
     Favorites,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 struct TickerRowData {
     exchange: Exchange,
     ticker: Ticker,
@@ -251,14 +252,6 @@ impl TickersTable {
             ),
             _ => false,
         }
-    }
-
-    fn is_container_visible(&self, index: usize, bounds: Size) -> bool {
-        let item_top = SEARCH_BAR_HEIGHT + (index as f32 * TICKER_CARD_HEIGHT);
-        let item_bottom = item_top + TICKER_CARD_HEIGHT;
-
-        (item_bottom >= (self.scroll_offset.y - (3.0 * TICKER_CARD_HEIGHT)))
-            && (item_top <= (self.scroll_offset.y + bounds.height + (4.0 * TICKER_CARD_HEIGHT)))
     }
 
     pub fn update_ticker_info(
@@ -546,13 +539,16 @@ impl TickersTable {
 
         content = content.push(exchange_filters_row);
 
-        let mut ticker_cards = column![].spacing(4);
-
         let filter_predicate = |row: &TickerRowData| -> bool {
-            let (ticker_str, market) = row.ticker.to_full_symbol_and_type();
-            let search_match = ticker_str.contains(&self.search_query);
+            let search_match = if self.search_query.is_empty() {
+                true
+            } else {
+                let (ticker_str, _market) = row.ticker.to_full_symbol_and_type();
+                ticker_str.contains(&self.search_query)
+            };
+
             let market_match = match self.selected_market {
-                Some(market_type) => market == market_type,
+                Some(market_type) => row.ticker.market_type() == market_type,
                 None => true,
             };
 
@@ -565,27 +561,48 @@ impl TickersTable {
             search_match && market_match && tab_match
         };
 
-        ticker_cards = self
+        let scroll_y = self.scroll_offset.y.max(0.0);
+        let filtered_count = self
             .ticker_rows
             .iter()
             .filter(|row| filter_predicate(row))
-            .enumerate()
-            .fold(ticker_cards, |ticker_cards, (index, row)| {
-                if let Some(display_data) = self.display_cache.get(&(row.exchange, row.ticker)) {
-                    let is_visible = self.is_container_visible(index, bounds);
+            .count();
 
-                    ticker_cards.push(ticker_card_container(
-                        is_visible,
+        let first_visible_index = ((scroll_y / TICKER_CARD_HEIGHT).floor().max(0.0) as isize
+            - OVERSCAN_BUFFER)
+            .max(0) as usize;
+        let last_visible_index = (((scroll_y + bounds.height) / TICKER_CARD_HEIGHT).ceil() as isize
+            + OVERSCAN_BUFFER)
+            .min(filtered_count as isize) as usize;
+
+        let top_space = Space::new(
+            Length::Shrink,
+            Length::Fixed((first_visible_index as f32) * TICKER_CARD_HEIGHT),
+        );
+        let bottom_space = Space::new(
+            Length::Shrink,
+            Length::Fixed(((filtered_count - last_visible_index) as f32) * TICKER_CARD_HEIGHT),
+        );
+
+        let mut ticker_cards = column![top_space].spacing(4);
+
+        let mut filtered_index = 0;
+        for row in self.ticker_rows.iter().filter(|row| filter_predicate(row)) {
+            if filtered_index >= first_visible_index && filtered_index < last_visible_index {
+                if let Some(display_data) = self.display_cache.get(&(row.exchange, row.ticker)) {
+                    ticker_cards = ticker_cards.push(ticker_card_container(
                         row.exchange,
                         &row.ticker,
                         display_data,
                         expanded_card,
                         row.is_favorited,
-                    ))
-                } else {
-                    ticker_cards
+                    ));
                 }
-            });
+            }
+            filtered_index += 1;
+        }
+
+        ticker_cards = ticker_cards.push(bottom_space);
 
         content = content.push(ticker_cards);
 
@@ -611,20 +628,12 @@ impl TickersTable {
 }
 
 fn ticker_card_container<'a>(
-    is_visible: bool,
     exchange: Exchange,
     ticker: &'a Ticker,
     display_data: &'a TickerDisplayData,
     expanded_card: Option<(Ticker, Exchange)>,
     is_fav: bool,
 ) -> Element<'a, Message> {
-    if !is_visible {
-        return column![]
-            .width(Length::Fill)
-            .height(Length::Fixed(60.0))
-            .into();
-    }
-
     if let Some((selected_ticker, selected_exchange)) = &expanded_card {
         if ticker == selected_ticker && exchange == *selected_exchange {
             container(create_expanded_ticker_card(
