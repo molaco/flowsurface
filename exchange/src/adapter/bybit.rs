@@ -2,7 +2,7 @@ use super::{
     super::{
         Exchange, Kline, MarketKind, OpenInterest, SIZE_IN_QUOTE_CURRENCY, StreamKind, Ticker,
         TickerInfo, TickerStats, Timeframe, Trade,
-        connect::{State, setup_tcp_connection, setup_tls_connection, setup_websocket_connection},
+        connect::{State, connect_ws},
         de_string_to_f32, de_string_to_u64,
         depth::{DepthPayload, DepthUpdate, LocalDepthCache, Order},
         is_symbol_supported,
@@ -11,27 +11,27 @@ use super::{
     AdapterError, Event,
 };
 
-use fastwebsockets::{FragmentCollector, Frame, OpCode};
-use hyper::upgrade::Upgraded;
-use hyper_util::rt::TokioIo;
+use fastwebsockets::{Frame, OpCode};
 use iced_futures::{
     futures::{SinkExt, Stream, channel::mpsc},
     stream,
 };
 use serde_json::{Value, json};
-use sonic_rs::to_object_iter_unchecked;
-use sonic_rs::{Deserialize, JsonValueTrait};
+use sonic_rs::{Deserialize, JsonValueTrait, to_object_iter_unchecked};
 use tokio::sync::Mutex;
 
 use std::{collections::HashMap, sync::LazyLock, time::Duration};
+
+const WS_DOMAIN: &str = "stream.bybit.com";
+const FETCH_DOMAIN: &str = "https://api.bybit.com";
+
+static BYBIT_LIMITER: LazyLock<Mutex<BybitLimiter>> =
+    LazyLock::new(|| Mutex::new(BybitLimiter::new(LIMIT, REFILL_RATE)));
 
 const LIMIT: usize = 600;
 
 const REFILL_RATE: Duration = Duration::from_secs(5);
 const LIMITER_BUFFER_PCT: f32 = 0.05;
-
-static BYBIT_LIMITER: LazyLock<Mutex<BybitLimiter>> =
-    LazyLock::new(|| Mutex::new(BybitLimiter::new(LIMIT, REFILL_RATE)));
 
 pub struct BybitLimiter {
     bucket: limiter::FixedWindowBucket,
@@ -245,23 +245,6 @@ fn feed_de(
     Err(AdapterError::ParseError("Unknown data".to_string()))
 }
 
-async fn connect(
-    domain: &str,
-    market_type: MarketKind,
-) -> Result<FragmentCollector<TokioIo<Upgraded>>, AdapterError> {
-    let tcp_stream = setup_tcp_connection(domain).await?;
-    let tls_stream = setup_tls_connection(domain, tcp_stream).await?;
-    let url = format!(
-        "wss://stream.bybit.com/v5/public/{}",
-        match market_type {
-            MarketKind::Spot => "spot",
-            MarketKind::LinearPerps => "linear",
-            MarketKind::InversePerps => "inverse",
-        }
-    );
-    setup_websocket_connection(domain, tls_stream, &url).await
-}
-
 async fn try_connect(
     streams: &Value,
     market_type: MarketKind,
@@ -272,8 +255,17 @@ async fn try_connect(
         MarketKind::LinearPerps => Exchange::BybitLinear,
         MarketKind::InversePerps => Exchange::BybitInverse,
     };
+    let url = format!(
+        "wss://{}/v5/public/{}",
+        WS_DOMAIN,
+        match market_type {
+            MarketKind::Spot => "spot",
+            MarketKind::LinearPerps => "linear",
+            MarketKind::InversePerps => "inverse",
+        }
+    );
 
-    match connect("stream.bybit.com", market_type).await {
+    match connect_ws(WS_DOMAIN, &url).await {
         Ok(mut websocket) => {
             if let Err(e) = websocket
                 .write_frame(Frame::text(fastwebsockets::Payload::Borrowed(
@@ -312,23 +304,7 @@ pub fn connect_market_stream(ticker: Ticker) -> impl Stream<Item = Event> {
         let mut state: State = State::Disconnected;
 
         let (symbol_str, market_type) = ticker.to_full_symbol_and_type();
-
         let exchange = exchange_from_market_type(market_type);
-
-        let stream_1 = format!("publicTrade.{symbol_str}");
-        let stream_2 = format!(
-            "orderbook.{}.{}",
-            match market_type {
-                MarketKind::Spot => "200",
-                MarketKind::LinearPerps | MarketKind::InversePerps => "500",
-            },
-            symbol_str,
-        );
-
-        let subscribe_message = serde_json::json!({
-            "op": "subscribe",
-            "args": [stream_1, stream_2]
-        });
 
         let mut trades_buffer: Vec<Trade> = Vec::new();
         let mut orderbook = LocalDepthCache::default();
@@ -338,6 +314,20 @@ pub fn connect_market_stream(ticker: Ticker) -> impl Stream<Item = Event> {
         loop {
             match &mut state {
                 State::Disconnected => {
+                    let stream_1 = format!("publicTrade.{symbol_str}");
+                    let stream_2 = format!(
+                        "orderbook.{}.{}",
+                        match market_type {
+                            MarketKind::Spot => "200",
+                            MarketKind::LinearPerps | MarketKind::InversePerps => "500",
+                        },
+                        symbol_str,
+                    );
+                    let subscribe_message = serde_json::json!({
+                        "op": "subscribe",
+                        "args": [stream_1, stream_2]
+                    });
+
                     state = try_connect(&subscribe_message, market_type, &mut output).await;
                 }
                 State::Connected(websocket) => match websocket.read_frame().await {
@@ -449,31 +439,30 @@ pub fn connect_kline_stream(
 
         let exchange = exchange_from_market_type(market_type);
 
-        let stream_str = streams
-            .iter()
-            .map(|(ticker, timeframe)| {
-                let timeframe_str = {
-                    if Timeframe::D1 == *timeframe {
-                        "D".to_string()
-                    } else {
-                        timeframe.to_minutes().to_string()
-                    }
-                };
-                format!(
-                    "kline.{timeframe_str}.{}",
-                    ticker.to_full_symbol_and_type().0
-                )
-            })
-            .collect::<Vec<String>>();
-
-        let subscribe_message = serde_json::json!({
-            "op": "subscribe",
-            "args": stream_str
-        });
-
         loop {
             match &mut state {
                 State::Disconnected => {
+                    let stream_str = streams
+                        .iter()
+                        .map(|(ticker, timeframe)| {
+                            let timeframe_str = {
+                                if Timeframe::D1 == *timeframe {
+                                    "D".to_string()
+                                } else {
+                                    timeframe.to_minutes().to_string()
+                                }
+                            };
+                            format!(
+                                "kline.{timeframe_str}.{}",
+                                ticker.to_full_symbol_and_type().0
+                            )
+                        })
+                        .collect::<Vec<String>>();
+                    let subscribe_message = serde_json::json!({
+                        "op": "subscribe",
+                        "args": stream_str
+                    });
+
                     state = try_connect(&subscribe_message, market_type, &mut output).await;
                 }
                 State::Connected(websocket) => match websocket.read_frame().await {
@@ -586,7 +575,7 @@ pub async fn fetch_historical_oi(
     };
 
     let mut url = format!(
-        "https://api.bybit.com/v5/market/open-interest?category=linear&symbol={ticker_str}&intervalTime={period_str}",
+        "{FETCH_DOMAIN}/v5/market/open-interest?category=linear&symbol={ticker_str}&intervalTime={period_str}",
     );
 
     if let Some((start, end)) = range {
@@ -694,7 +683,7 @@ pub async fn fetch_klines(
     };
 
     let mut url = format!(
-        "https://api.bybit.com/v5/market/kline?category={}&symbol={}&interval={}",
+        "{FETCH_DOMAIN}/v5/market/kline?category={}&symbol={}&interval={}",
         market,
         symbol_str.to_uppercase(),
         timeframe_str
@@ -760,8 +749,7 @@ pub async fn fetch_ticksize(
         MarketKind::InversePerps => "inverse",
     };
 
-    let url =
-        format!("https://api.bybit.com/v5/market/instruments-info?category={market}&limit=1000",);
+    let url = format!("{FETCH_DOMAIN}/v5/market/instruments-info?category={market}&limit=1000",);
 
     let response_text = crate::limiter::HTTP_CLIENT
         .get(&url)
@@ -848,7 +836,7 @@ pub async fn fetch_ticker_prices(
         MarketKind::InversePerps => "inverse",
     };
 
-    let url = format!("https://api.bybit.com/v5/market/tickers?category={market}");
+    let url = format!("{FETCH_DOMAIN}/v5/market/tickers?category={market}");
 
     let response_text = http_request_with_limiter(&url, &BYBIT_LIMITER, 1).await?;
 

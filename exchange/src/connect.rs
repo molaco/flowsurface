@@ -20,6 +20,19 @@ pub enum State {
     Connected(FragmentCollector<TokioIo<Upgraded>>),
 }
 
+pub async fn connect_ws(
+    domain: &str,
+    url: &str,
+) -> Result<
+    fastwebsockets::FragmentCollector<hyper_util::rt::TokioIo<hyper::upgrade::Upgraded>>,
+    AdapterError,
+> {
+    let tcp_stream = setup_tcp(domain).await?;
+    let tls_stream = upgrade_to_tls(domain, tcp_stream).await?;
+
+    upgrade_to_websocket(domain, tls_stream, url).await
+}
+
 struct SpawnExecutor;
 
 impl<Fut> hyper::rt::Executor<Fut> for SpawnExecutor
@@ -32,7 +45,14 @@ where
     }
 }
 
-pub fn tls_connector() -> Result<TlsConnector, AdapterError> {
+async fn setup_tcp(domain: &str) -> Result<TcpStream, AdapterError> {
+    let addr = format!("{domain}:443");
+    TcpStream::connect(&addr)
+        .await
+        .map_err(|e| AdapterError::WebsocketError(e.to_string()))
+}
+
+fn tls_connector() -> Result<TlsConnector, AdapterError> {
     let mut root_store = tokio_rustls::rustls::RootCertStore::empty();
 
     root_store.add_trust_anchors(webpki_roots::TLS_SERVER_ROOTS.0.iter().map(|ta| {
@@ -51,28 +71,21 @@ pub fn tls_connector() -> Result<TlsConnector, AdapterError> {
     Ok(TlsConnector::from(std::sync::Arc::new(config)))
 }
 
-pub async fn setup_tcp_connection(domain: &str) -> Result<TcpStream, AdapterError> {
-    let addr = format!("{domain}:443");
-    TcpStream::connect(&addr)
-        .await
-        .map_err(|e| AdapterError::WebsocketError(e.to_string()))
-}
-
-pub async fn setup_tls_connection(
+async fn upgrade_to_tls(
     domain: &str,
     tcp_stream: TcpStream,
 ) -> Result<tokio_rustls::client::TlsStream<TcpStream>, AdapterError> {
-    let tls_connector: TlsConnector = tls_connector()?;
     let domain: tokio_rustls::rustls::ServerName =
         tokio_rustls::rustls::ServerName::try_from(domain)
             .map_err(|_| AdapterError::ParseError("invalid dnsname".to_string()))?;
-    tls_connector
+
+    tls_connector()?
         .connect(domain, tcp_stream)
         .await
         .map_err(|e| AdapterError::WebsocketError(e.to_string()))
 }
 
-pub async fn setup_websocket_connection(
+async fn upgrade_to_websocket(
     domain: &str,
     tls_stream: tokio_rustls::client::TlsStream<TcpStream>,
     url: &str,

@@ -2,7 +2,7 @@ use super::{
     super::{
         Exchange, Kline, MarketKind, OpenInterest, SIZE_IN_QUOTE_CURRENCY, StreamKind, Ticker,
         TickerInfo, TickerStats, Timeframe, Trade,
-        connect::{State, setup_tcp_connection, setup_tls_connection, setup_websocket_connection},
+        connect::{State, connect_ws},
         de_string_to_f32,
         depth::{DepthPayload, DepthUpdate, LocalDepthCache, Order},
         is_symbol_supported,
@@ -13,27 +13,20 @@ use super::{
 };
 
 use csv::ReaderBuilder;
-use fastwebsockets::{FragmentCollector, OpCode};
-use hyper::upgrade::Upgraded;
-use hyper_util::rt::TokioIo;
+use fastwebsockets::OpCode;
 use iced_futures::{
     futures::{SinkExt, Stream, channel::mpsc},
     stream,
 };
 use serde::Deserialize;
 use sonic_rs::{FastStr, to_object_iter_unchecked};
-use std::{collections::HashMap, io::BufReader, path::PathBuf, sync::LazyLock, time::Duration};
 use tokio::sync::Mutex;
+
+use std::{collections::HashMap, io::BufReader, path::PathBuf, sync::LazyLock, time::Duration};
 
 const SPOT_DOMAIN: &str = "https://api.binance.com";
 const LINEAR_PERP_DOMAIN: &str = "https://fapi.binance.com";
 const INVERSE_PERP_DOMAIN: &str = "https://dapi.binance.com";
-
-const SPOT_LIMIT: usize = 6000;
-const PERP_LIMIT: usize = 2400;
-
-const REFILL_RATE: Duration = Duration::from_secs(60);
-const LIMITER_BUFFER_PCT: f32 = 0.03;
 
 static SPOT_LIMITER: LazyLock<Mutex<BinanceLimiter>> =
     LazyLock::new(|| Mutex::new(BinanceLimiter::new(SPOT_LIMIT, REFILL_RATE)));
@@ -41,6 +34,12 @@ static LINEAR_LIMITER: LazyLock<Mutex<BinanceLimiter>> =
     LazyLock::new(|| Mutex::new(BinanceLimiter::new(PERP_LIMIT, REFILL_RATE)));
 static INVERSE_LIMITER: LazyLock<Mutex<BinanceLimiter>> =
     LazyLock::new(|| Mutex::new(BinanceLimiter::new(PERP_LIMIT, REFILL_RATE)));
+
+const SPOT_LIMIT: usize = 6000;
+const PERP_LIMIT: usize = 2400;
+
+const REFILL_RATE: Duration = Duration::from_secs(60);
+const LIMITER_BUFFER_PCT: f32 = 0.03;
 
 pub struct BinanceLimiter {
     bucket: limiter::DynamicBucket,
@@ -91,6 +90,14 @@ fn limiter_from_market_type(market: MarketKind) -> &'static Mutex<BinanceLimiter
         MarketKind::Spot => &SPOT_LIMITER,
         MarketKind::LinearPerps => &LINEAR_LIMITER,
         MarketKind::InversePerps => &INVERSE_LIMITER,
+    }
+}
+
+fn ws_domain_from_market_type(market: MarketKind) -> &'static str {
+    match market {
+        MarketKind::Spot => "stream.binance.com",
+        MarketKind::LinearPerps => "fstream.binance.com",
+        MarketKind::InversePerps => "dstream.binance.com",
     }
 }
 
@@ -275,16 +282,6 @@ fn feed_de(slice: &[u8], market: MarketKind) -> Result<StreamData, AdapterError>
     ))
 }
 
-async fn connect(
-    domain: &str,
-    streams: &str,
-) -> Result<FragmentCollector<TokioIo<Upgraded>>, AdapterError> {
-    let tcp_stream = setup_tcp_connection(domain).await?;
-    let tls_stream = setup_tls_connection(domain, tcp_stream).await?;
-    let url = format!("wss://{domain}/stream?streams={streams}");
-    setup_websocket_connection(domain, tls_stream, &url).await
-}
-
 async fn try_resync(
     exchange: Exchange,
     ticker: Ticker,
@@ -337,21 +334,10 @@ pub fn connect_market_stream(ticker: Ticker) -> impl Stream<Item = Event> {
         let (symbol_str, market) = ticker.to_full_symbol_and_type();
         let exchange = exchange_from_market_type(market);
 
-        let stream_1 = format!("{}@aggTrade", symbol_str.to_lowercase());
-        let stream_2 = format!("{}@depth@100ms", symbol_str.to_lowercase());
-
         let mut orderbook: LocalDepthCache = LocalDepthCache::default();
         let mut trades_buffer: Vec<Trade> = Vec::new();
         let mut already_fetching: bool = false;
         let mut prev_id: u64 = 0;
-
-        let streams = format!("{stream_1}/{stream_2}");
-
-        let domain = match market {
-            MarketKind::Spot => "stream.binance.com",
-            MarketKind::LinearPerps => "fstream.binance.com",
-            MarketKind::InversePerps => "dstream.binance.com",
-        };
 
         let contract_size = get_contract_size(&ticker, market);
         let size_in_quote_currency = SIZE_IN_QUOTE_CURRENCY.get() == Some(&true);
@@ -359,7 +345,14 @@ pub fn connect_market_stream(ticker: Ticker) -> impl Stream<Item = Event> {
         loop {
             match &mut state {
                 State::Disconnected => {
-                    if let Ok(websocket) = connect(domain, streams.as_str()).await {
+                    let stream_1 = format!("{}@aggTrade", symbol_str.to_lowercase());
+                    let stream_2 = format!("{}@depth@100ms", symbol_str.to_lowercase());
+
+                    let domain = ws_domain_from_market_type(market);
+                    let streams = format!("{stream_1}/{stream_2}");
+                    let url = format!("wss://{domain}/stream?streams={streams}");
+
+                    if let Ok(websocket) = connect_ws(domain, &url).await {
                         let (tx, rx) = tokio::sync::oneshot::channel();
 
                         tokio::spawn(async move {
@@ -594,31 +587,27 @@ pub fn connect_kline_stream(
 ) -> impl Stream<Item = Event> {
     stream::channel(100, async move |mut output| {
         let mut state = State::Disconnected;
-
         let exchange = exchange_from_market_type(market);
-
-        let stream_str = streams
-            .iter()
-            .map(|(ticker, timeframe)| {
-                let timeframe_str = timeframe.to_string();
-                format!(
-                    "{}@kline_{timeframe_str}",
-                    ticker.to_full_symbol_and_type().0.to_lowercase()
-                )
-            })
-            .collect::<Vec<String>>()
-            .join("/");
 
         loop {
             match &mut state {
                 State::Disconnected => {
-                    let domain = match market {
-                        MarketKind::Spot => "stream.binance.com",
-                        MarketKind::LinearPerps => "fstream.binance.com",
-                        MarketKind::InversePerps => "dstream.binance.com",
-                    };
+                    let stream_str = streams
+                        .iter()
+                        .map(|(ticker, timeframe)| {
+                            format!(
+                                "{}@kline_{}",
+                                ticker.to_full_symbol_and_type().0.to_lowercase(),
+                                timeframe.to_string()
+                            )
+                        })
+                        .collect::<Vec<String>>()
+                        .join("/");
 
-                    if let Ok(websocket) = connect(domain, stream_str.as_str()).await {
+                    let domain = ws_domain_from_market_type(market);
+                    let url = format!("wss://{domain}/stream?streams={stream_str}");
+
+                    if let Ok(websocket) = connect_ws(domain, &url).await {
                         state = State::Connected(websocket);
                         let _ = output.send(Event::Connected(exchange)).await;
                     } else {
