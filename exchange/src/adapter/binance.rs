@@ -288,6 +288,7 @@ async fn connect(
 async fn try_resync(
     exchange: Exchange,
     ticker: Ticker,
+    contract_size: Option<f32>,
     orderbook: &mut LocalDepthCache,
     state: &mut State,
     output: &mut mpsc::Sender<Event>,
@@ -297,7 +298,7 @@ async fn try_resync(
     *already_fetching = true;
 
     tokio::spawn(async move {
-        let result = fetch_depth(&ticker).await;
+        let result = fetch_depth(&ticker, contract_size).await;
         let _ = tx.send(result);
     });
 
@@ -362,7 +363,7 @@ pub fn connect_market_stream(ticker: Ticker) -> impl Stream<Item = Event> {
                         let (tx, rx) = tokio::sync::oneshot::channel();
 
                         tokio::spawn(async move {
-                            let result = fetch_depth(&ticker).await;
+                            let result = fetch_depth(&ticker, contract_size).await;
                             let _ = tx.send(result);
                         });
                         match rx.await {
@@ -452,6 +453,7 @@ pub fn connect_market_stream(ticker: Ticker) -> impl Stream<Item = Event> {
                                                         try_resync(
                                                             exchange,
                                                             ticker,
+                                                            contract_size,
                                                             &mut orderbook,
                                                             &mut state,
                                                             &mut output,
@@ -511,6 +513,7 @@ pub fn connect_market_stream(ticker: Ticker) -> impl Stream<Item = Event> {
                                                         try_resync(
                                                             exchange,
                                                             ticker,
+                                                            contract_size,
                                                             &mut orderbook,
                                                             &mut state,
                                                             &mut output,
@@ -730,34 +733,23 @@ fn new_depth_cache(depth: &SonicDepth, contract_size: Option<f32>) -> DepthPaylo
             .iter()
             .map(|x| Order {
                 price: x.price,
-                qty: contract_size.map_or(
-                    if size_in_quote_currency {
-                        (x.qty * x.price).round()
-                    } else {
-                        x.qty
-                    },
-                    |size| x.qty * size,
-                ),
+                qty: calc_qty(x.qty, x.price, contract_size, size_in_quote_currency),
             })
             .collect(),
         asks: asks
             .iter()
             .map(|x| Order {
                 price: x.price,
-                qty: contract_size.map_or(
-                    if size_in_quote_currency {
-                        (x.qty * x.price).round()
-                    } else {
-                        x.qty
-                    },
-                    |size| x.qty * size,
-                ),
+                qty: calc_qty(x.qty, x.price, contract_size, size_in_quote_currency),
             })
             .collect(),
     }
 }
 
-async fn fetch_depth(ticker: &Ticker) -> Result<DepthPayload, AdapterError> {
+async fn fetch_depth(
+    ticker: &Ticker,
+    contract_size: Option<f32>,
+) -> Result<DepthPayload, AdapterError> {
     let (symbol_str, market_type) = ticker.to_full_symbol_and_type();
 
     let base_url = match market_type {
@@ -798,6 +790,8 @@ async fn fetch_depth(ticker: &Ticker) -> Result<DepthPayload, AdapterError> {
     let limiter = limiter_from_market_type(market_type);
     let text = crate::limiter::http_request_with_limiter(&url, limiter, weight).await?;
 
+    let size_in_quote_currency = SIZE_IN_QUOTE_CURRENCY.get() == Some(&true);
+
     match market_type {
         MarketKind::Spot => {
             let fetched_depth: FetchedSpotDepth =
@@ -806,8 +800,22 @@ async fn fetch_depth(ticker: &Ticker) -> Result<DepthPayload, AdapterError> {
             let depth = DepthPayload {
                 last_update_id: fetched_depth.update_id,
                 time: chrono::Utc::now().timestamp_millis() as u64,
-                bids: fetched_depth.bids,
-                asks: fetched_depth.asks,
+                bids: fetched_depth
+                    .bids
+                    .iter()
+                    .map(|x| Order {
+                        price: x.price,
+                        qty: calc_qty(x.qty, x.price, contract_size, size_in_quote_currency),
+                    })
+                    .collect(),
+                asks: fetched_depth
+                    .asks
+                    .iter()
+                    .map(|x| Order {
+                        price: x.price,
+                        qty: calc_qty(x.qty, x.price, contract_size, size_in_quote_currency),
+                    })
+                    .collect(),
             };
 
             Ok(depth)
@@ -819,11 +827,38 @@ async fn fetch_depth(ticker: &Ticker) -> Result<DepthPayload, AdapterError> {
             let depth = DepthPayload {
                 last_update_id: fetched_depth.update_id,
                 time: fetched_depth.time,
-                bids: fetched_depth.bids,
-                asks: fetched_depth.asks,
+                bids: fetched_depth
+                    .bids
+                    .iter()
+                    .map(|x| Order {
+                        price: x.price,
+                        qty: calc_qty(x.qty, x.price, contract_size, size_in_quote_currency),
+                    })
+                    .collect(),
+                asks: fetched_depth
+                    .asks
+                    .iter()
+                    .map(|x| Order {
+                        price: x.price,
+                        qty: calc_qty(x.qty, x.price, contract_size, size_in_quote_currency),
+                    })
+                    .collect(),
             };
 
             Ok(depth)
+        }
+    }
+}
+
+fn calc_qty(qty: f32, price: f32, contract_size: Option<f32>, size_in_quote_currency: bool) -> f32 {
+    match contract_size {
+        Some(size) => qty * size,
+        None => {
+            if size_in_quote_currency {
+                (qty * price).round()
+            } else {
+                qty
+            }
         }
     }
 }
