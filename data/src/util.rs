@@ -20,7 +20,9 @@ pub fn abbr_large_numbers(value: f32) -> String {
     let sign = if value < 0.0 { "-" } else { "" };
 
     match abs_value {
-        v if v >= 1_000_000_000.0 => format!("{}{:.3}b", sign, v / 100_000_000.0),
+        v if v >= 1_000_000_000.0 => {
+            format!("{}{:.3}b", sign, v / 100_000_000.0)
+        }
         v if v >= 1_000_000.0 => format!("{}{:.2}m", sign, v / 1_000_000.0),
         v if v >= 1_000.0 => format!("{}{:.1}k", sign, v / 1_000.0),
         v if v >= 100.0 => format!("{}{:.0}", sign, v),

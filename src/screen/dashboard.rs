@@ -384,8 +384,12 @@ impl Dashboard {
                         }
                     }
                 }
-                pane::Message::Popout => return (self.popout_pane(main_window), None),
-                pane::Message::Merge => return (self.merge_pane(main_window), None),
+                pane::Message::Popout => {
+                    return (self.popout_pane(main_window), None);
+                }
+                pane::Message::Merge => {
+                    return (self.merge_pane(main_window), None);
+                }
                 pane::Message::ToggleIndicator(pane, indicator_str) => {
                     if let Some(pane_state) = self.get_mut_pane(main_window.id, window, pane) {
                         pane_state.content.toggle_indicator(&indicator_str);

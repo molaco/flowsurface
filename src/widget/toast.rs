@@ -107,9 +107,9 @@ where
                             horizontal_space(),
                             button("X")
                                 .on_press((on_close)(index))
-                                .style(move |theme, status| style::button::transparent(
-                                    theme, status, true
-                                ))
+                                .style(move |theme, status| {
+                                    style::button::transparent(theme, status, true)
+                                })
                                 .padding(padding::right(6).left(6).top(2).bottom(2))
                         ]
                         .align_y(Center)

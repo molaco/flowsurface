@@ -1348,8 +1348,12 @@ pub async fn get_hist_trades(
 
     let market_subpath = match market_type {
         MarketKind::Spot => format!("data/spot/daily/aggTrades/{symbol}"),
-        MarketKind::LinearPerps => format!("data/futures/um/daily/aggTrades/{symbol}"),
-        MarketKind::InversePerps => format!("data/futures/cm/daily/aggTrades/{symbol}"),
+        MarketKind::LinearPerps => {
+            format!("data/futures/um/daily/aggTrades/{symbol}")
+        }
+        MarketKind::InversePerps => {
+            format!("data/futures/cm/daily/aggTrades/{symbol}")
+        }
     };
 
     let zip_file_name = format!(

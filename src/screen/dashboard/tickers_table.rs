@@ -734,7 +734,7 @@ fn create_expanded_ticker_card<'a>(
                 icon_text(Icon::Star, 11)
             })
             .on_press(Message::FavoriteTicker(exchange, *ticker))
-            .style(move |theme, status| style::button::transparent(theme, status, false)),
+            .style(move |theme, status| { style::button::transparent(theme, status, false) }),
             horizontal_space(),
             button_with_tooltip(
                 icon_text(Icon::Link, 11),
