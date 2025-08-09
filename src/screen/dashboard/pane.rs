@@ -514,12 +514,12 @@ impl State {
     }
 
     fn view_controls(
-        &self,
+        &'_ self,
         pane: pane_grid::Pane,
         total_panes: usize,
         is_maximized: bool,
         is_popout: bool,
-    ) -> Element<Message> {
+    ) -> Element<'_, Message> {
         let modal_btn_style = |modal: Modal| {
             let is_active = self.modal == Some(modal);
             move |theme: &Theme, status: button::Status| {
