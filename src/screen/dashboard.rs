@@ -936,6 +936,14 @@ impl Dashboard {
         ticker_info: TickerInfo,
         content: &str,
     ) -> Task<Message> {
+        // Auto-focus single pane if no pane is focused but exactly one exists
+        if self.focus.is_none() && self.panes.len() == 1 {
+            if let Some((pane_id, _)) = self.panes.iter().next() {
+                self.focus = Some((main_window, *pane_id));
+            }
+        }
+
+        // Check if we have a focused pane
         if let Some((window, selected_pane)) = self.focus
             && let Some(state) = self.get_mut_pane(main_window, window, selected_pane)
         {
@@ -973,6 +981,13 @@ impl Dashboard {
         main_window: window::Id,
         ticker_info: TickerInfo,
     ) -> Task<Message> {
+        // Auto-focus single pane if no pane is focused but exactly one exists
+        if self.focus.is_none() && self.panes.len() == 1 {
+            if let Some((pane_id, _)) = self.panes.iter().next() {
+                self.focus = Some((main_window, *pane_id));
+            }
+        }
+
         let link_group = self.focus.and_then(|(window, pane)| {
             self.get_pane(main_window, window, pane)
                 .and_then(|state| state.link_group)
