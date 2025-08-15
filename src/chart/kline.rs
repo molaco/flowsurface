@@ -410,7 +410,7 @@ impl KlineChart {
 
                 let (visible_earliest, visible_latest) = self.visible_timerange();
                 let (kline_earliest, kline_latest) = timeseries.timerange();
-                let earliest = visible_earliest - (visible_latest - visible_earliest);
+                let earliest = visible_earliest.saturating_sub(visible_latest - visible_earliest);
 
                 // priority 1, basic kline data fetch
                 if visible_earliest < kline_earliest {
@@ -421,6 +421,7 @@ impl KlineChart {
                     }
                 }
 
+                // priority 2, trades fetch
                 if !self.fetching_trades.0
                     && exchange::fetcher::is_trade_fetch_enabled()
                     && let Some((fetch_from, fetch_to)) =
@@ -433,11 +434,14 @@ impl KlineChart {
                     }
                 }
 
-                // priority 2, Open Interest data
+                // priority 3, Open Interest data
                 for data in self.indicators.values() {
                     if let IndicatorData::OpenInterest(_, _) = data
                         && timeframe >= Timeframe::M5.to_milliseconds()
-                        && self.chart.ticker_info.is_some_and(|t| t.is_perps())
+                        && self.chart.ticker_info.is_some_and(|t| {
+                            t.is_perps()
+                                && t.exchange() != exchange::adapter::Exchange::HyperliquidLinear
+                        })
                     {
                         let (oi_earliest, oi_latest) = self.oi_timerange(kline_latest);
 
@@ -460,7 +464,7 @@ impl KlineChart {
                     }
                 }
 
-                // priority 3, missing klines & integrity check
+                // priority 4, missing klines & integrity check
                 if let Some(missing_keys) =
                     timeseries.check_kline_integrity(kline_earliest, kline_latest, timeframe)
                 {
@@ -1654,7 +1658,7 @@ fn draw_crosshair_tooltip(
             (&kline.low.to_string(), change_color, true),
             ("C", base_color, false),
             (&kline.close.to_string(), change_color, true),
-            (&format!("{:+.2}%", change_pct), change_color, true),
+            (&format!("{change_pct:+.2}%"), change_color, true),
         ];
 
         let total_width: f32 = segments

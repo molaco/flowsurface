@@ -2,7 +2,7 @@ use std::collections::{HashMap, HashSet};
 
 use crate::{
     style::{self, ICONS_FONT, Icon, icon_text},
-    widget::button_with_tooltip,
+    widget::{button_with_tooltip, tooltip},
 };
 use data::InternalError;
 use exchange::{
@@ -52,6 +52,7 @@ pub enum TickerTab {
     All,
     Bybit,
     Binance,
+    Hyperliquid,
     Favorites,
 }
 
@@ -250,6 +251,9 @@ impl TickersTable {
                 ex,
                 Exchange::BinanceLinear | Exchange::BinanceInverse | Exchange::BinanceSpot
             ),
+            TickerTab::Hyperliquid => {
+                matches!(ex, Exchange::HyperliquidLinear | Exchange::HyperliquidSpot)
+            }
             _ => false,
         }
     }
@@ -507,14 +511,31 @@ impl TickersTable {
         };
 
         let exchange_filters_row = {
-            let all_button = tab_button(text("ALL"), &self.selected_tab, TickerTab::All);
-            let bybit_button = tab_button(text("Bybit"), &self.selected_tab, TickerTab::Bybit);
-            let binance_button =
-                tab_button(text("Binance"), &self.selected_tab, TickerTab::Binance);
             let favorites_button = tab_button(
                 text(char::from(Icon::StarFilled).to_string()).font(ICONS_FONT),
                 &self.selected_tab,
                 TickerTab::Favorites,
+                Some("Show favorites"),
+            );
+            let all_button = tab_button(text("ALL"), &self.selected_tab, TickerTab::All, None);
+
+            let bybit_button = tab_button(
+                icon_text(style::exchange_icon(Exchange::BybitLinear), 12),
+                &self.selected_tab,
+                TickerTab::Bybit,
+                Some("Bybit"),
+            );
+            let binance_button = tab_button(
+                icon_text(style::exchange_icon(Exchange::BinanceLinear), 12),
+                &self.selected_tab,
+                TickerTab::Binance,
+                Some("Binance"),
+            );
+            let hyperliquid_button = tab_button(
+                icon_text(style::exchange_icon(Exchange::HyperliquidLinear), 12),
+                &self.selected_tab,
+                TickerTab::Hyperliquid,
+                Some("Hyperliquid"),
             );
 
             row![
@@ -525,6 +546,8 @@ impl TickersTable {
                 bybit_button,
                 horizontal_space(),
                 binance_button,
+                horizontal_space(),
+                hyperliquid_button,
             ]
         };
 
@@ -543,8 +566,10 @@ impl TickersTable {
             let search_match = if self.search_query.is_empty() {
                 true
             } else {
-                let (ticker_str, _market) = row.ticker.to_full_symbol_and_type();
-                ticker_str.contains(&self.search_query)
+                let (display_str, _market) = row.ticker.display_symbol_and_type();
+                let (raw_str, _) = row.ticker.to_full_symbol_and_type();
+                // Search both display symbol and raw symbol for maximum compatibility
+                display_str.contains(&self.search_query) || raw_str.contains(&self.search_query)
             };
 
             let market_match = match self.selected_market {
@@ -754,6 +779,8 @@ fn create_expanded_ticker_card<'a>(
                     icon_text(Icon::BybitLogo, 12),
                 Exchange::BinanceInverse | Exchange::BinanceLinear | Exchange::BinanceSpot =>
                     icon_text(Icon::BinanceLogo, 12),
+                Exchange::HyperliquidLinear | Exchange::HyperliquidSpot =>
+                    icon_text(Icon::HyperliquidLogo, 12),
             },
             text(
                 ticker_str
@@ -811,13 +838,23 @@ fn tab_button<'a>(
     text: Text<'a, Theme, Renderer>,
     current_tab: &TickerTab,
     target_tab: TickerTab,
-) -> Button<'a, Message, Theme, Renderer> {
+    tooltip_text: Option<&'a str>,
+) -> Element<'a, Message, Theme, Renderer> {
     let mut btn =
         button(text).style(move |theme, status| style::button::transparent(theme, status, false));
     if *current_tab != target_tab {
         btn = btn.on_press(Message::ChangeTickersTableTab(target_tab));
     }
-    btn
+
+    tooltip(
+        btn,
+        if let Some(text) = tooltip_text {
+            Some(text)
+        } else {
+            None
+        },
+        iced::widget::tooltip::Position::Top,
+    )
 }
 
 fn sort_button(

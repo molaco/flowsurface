@@ -1,6 +1,7 @@
 use crate::adapter::AdapterError;
 
-use reqwest::{Client, Response};
+use reqwest::{Client, Method, Response};
+use serde_json::Value;
 use std::sync::LazyLock;
 use std::time::{Duration, Instant};
 
@@ -21,7 +22,11 @@ pub async fn http_request_with_limiter<L: RateLimiter>(
     url: &str,
     limiter: &tokio::sync::Mutex<L>,
     weight: usize,
+    method: Option<Method>,
+    json_body: Option<&Value>,
 ) -> Result<String, AdapterError> {
+    let method = method.unwrap_or(Method::GET);
+
     let mut limiter_guard = limiter.lock().await;
 
     if let Some(wait_time) = limiter_guard.prepare_request(weight) {
@@ -29,8 +34,21 @@ pub async fn http_request_with_limiter<L: RateLimiter>(
         tokio::time::sleep(wait_time).await;
     }
 
-    let response = HTTP_CLIENT
-        .get(url)
+    let mut request_builder = HTTP_CLIENT.request(method, url);
+
+    if let Some(body) = json_body {
+        log::debug!(
+            "Hyperliquid HTTP Request to {}: {}",
+            url,
+            serde_json::to_string_pretty(body)
+                .unwrap_or_else(|_| "Failed to serialize".to_string())
+        );
+        request_builder = request_builder.json(body);
+    } else {
+        log::debug!("Hyperliquid HTTP Request to {} (no body)", url);
+    }
+
+    let response = request_builder
         .send()
         .await
         .map_err(AdapterError::FetchError)?;

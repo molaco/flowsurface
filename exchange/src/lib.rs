@@ -15,10 +15,7 @@ use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 
 use std::sync::OnceLock;
-use std::{
-    fmt::{self, Write},
-    hash::Hash,
-};
+use std::{fmt, hash::Hash};
 
 pub static SIZE_IN_QUOTE_CURRENCY: OnceLock<bool> = OnceLock::new();
 
@@ -198,6 +195,8 @@ impl SerTicker {
             Exchange::BybitLinear => "BybitLinear",
             Exchange::BybitInverse => "BybitInverse",
             Exchange::BybitSpot => "BybitSpot",
+            Exchange::HyperliquidLinear => "HyperliquidLinear",
+            Exchange::HyperliquidSpot => "HyperliquidSpot",
         }
     }
 
@@ -209,6 +208,8 @@ impl SerTicker {
             "BybitLinear" => Ok(Exchange::BybitLinear),
             "BybitInverse" => Ok(Exchange::BybitInverse),
             "BybitSpot" => Ok(Exchange::BybitSpot),
+            "HyperliquidLinear" => Ok(Exchange::HyperliquidLinear),
+            "HyperliquidSpot" => Ok(Exchange::HyperliquidSpot),
             _ => Err(format!("Unknown exchange: {}", s)),
         }
     }
@@ -259,82 +260,128 @@ impl fmt::Display for SerTicker {
     }
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
+#[derive(Clone, Copy, PartialEq, Eq, Hash)]
 pub struct Ticker {
-    data: [u64; 2],
-    len: u8,
+    bytes: [u8; Ticker::MAX_LEN as usize],
     pub exchange: Exchange,
+    // Optional display symbol for UI, mainly used for Hyperliquid spot markets
+    // to show "HYPEUSDC" instead of "@107"
+    // Using Option<[u8; N]> would require heap allocation, so we use a flag pattern
+    // but could be refactored to use a smart enum if needed
+    display_bytes: [u8; Ticker::MAX_LEN as usize],
+    has_display_symbol: bool,
 }
 
 impl Ticker {
-    pub fn new(ticker: &str, exchange: Exchange) -> Self {
-        let base_len = ticker.len();
+    const MAX_LEN: u8 = 28;
 
-        assert!(base_len <= 20, "Ticker too long");
+    pub fn new(ticker: &str, exchange: Exchange) -> Self {
+        Self::new_with_display(ticker, exchange, None)
+    }
+
+    pub fn new_with_display(
+        ticker: &str,
+        exchange: Exchange,
+        display_symbol: Option<&str>,
+    ) -> Self {
+        assert!(ticker.len() <= Self::MAX_LEN as usize, "Ticker too long");
         assert!(
-            ticker
-                .chars()
-                .all(|c| c.is_ascii_alphanumeric() || c == '_'),
-            "Ticker must contain only ASCII alphanumeric characters and underscores: {ticker:?}"
+            ticker.is_ascii()
+                && ticker
+                    .as_bytes()
+                    .iter()
+                    .all(|&b| b.is_ascii_graphic() && b != b':' && b != b'|'),
+            "Ticker must be printable ASCII and must not contain ':' or '|': {ticker:?}"
         );
 
-        let mut data = [0u64; 2];
-        let mut len = 0;
+        let mut bytes = [0u8; Self::MAX_LEN as usize];
+        bytes[..ticker.len()].copy_from_slice(ticker.as_bytes());
 
-        for (i, c) in ticker.bytes().enumerate() {
-            let value = match c {
-                b'0'..=b'9' => c - b'0',
-                b'A'..=b'Z' => c - b'A' + 10,
-                b'_' => 36,
-                _ => unreachable!(),
-            };
-            let shift = (i % 10) * 6;
-            data[i / 10] |= u64::from(value) << shift;
-            len += 1;
-        }
+        let mut display_bytes = [0u8; Self::MAX_LEN as usize];
+        let has_display_symbol = if let Some(display) = display_symbol {
+            assert!(
+                display.len() <= Self::MAX_LEN as usize,
+                "Display symbol too long"
+            );
+            assert!(
+                display.is_ascii()
+                    && display
+                        .as_bytes()
+                        .iter()
+                        .all(|&b| b.is_ascii_graphic() && b != b':' && b != b'|'),
+                "Display symbol must be printable ASCII and must not contain ':' or '|': {display:?}"
+            );
+            display_bytes[..display.len()].copy_from_slice(display.as_bytes());
+            true
+        } else {
+            false
+        };
 
         Ticker {
-            data,
-            len,
+            bytes,
             exchange,
+            display_bytes,
+            has_display_symbol,
+        }
+    }
+
+    #[inline]
+    fn as_str(&self) -> &str {
+        let end = self
+            .bytes
+            .iter()
+            .position(|&b| b == 0)
+            .unwrap_or(Self::MAX_LEN as usize);
+        std::str::from_utf8(&self.bytes[..end]).unwrap()
+    }
+
+    #[inline]
+    fn display_as_str(&self) -> &str {
+        if self.has_display_symbol {
+            let end = self
+                .display_bytes
+                .iter()
+                .position(|&b| b == 0)
+                .unwrap_or(Self::MAX_LEN as usize);
+            std::str::from_utf8(&self.display_bytes[..end]).unwrap()
+        } else {
+            self.as_str()
+        }
+    }
+
+    /// Get the display symbol if it exists, otherwise None
+    pub fn display_symbol(&self) -> Option<&str> {
+        if self.has_display_symbol {
+            Some(self.display_as_str())
+        } else {
+            None
         }
     }
 
     pub fn to_full_symbol_and_type(&self) -> (String, MarketKind) {
-        let mut result = String::with_capacity(self.len as usize);
-        for i in 0..self.len {
-            let value = (self.data[i as usize / 10] >> ((i % 10) * 6)) & 0x3F;
-            let c = match value {
-                0..=9 => (b'0' + value as u8) as char,
-                10..=35 => (b'A' + (value as u8 - 10)) as char,
-                36 => '_',
-                _ => unreachable!(),
-            };
-            result.push(c);
-        }
-
-        (result, self.market_type())
+        (self.as_str().to_owned(), self.market_type())
     }
 
     pub fn display_symbol_and_type(&self) -> (String, MarketKind) {
-        let mut result = String::with_capacity(self.len as usize);
+        let market_kind = self.market_type();
 
-        for i in 0..self.len {
-            let value = (self.data[i as usize / 10] >> ((i % 10) * 6)) & 0x3F;
-
-            if value == 36 {
-                break;
+        let result = if self.has_display_symbol {
+            // Use the custom display symbol (e.g., "HYPEUSDC" for Hyperliquid spot)
+            self.display_as_str().to_owned()
+        } else {
+            let mut result = self.as_str().to_owned();
+            // Transform Hyperliquid symbols to standardized display format
+            if matches!(self.exchange, Exchange::HyperliquidLinear)
+                && market_kind == MarketKind::LinearPerps
+            {
+                // For Hyperliquid Linear Perps, append USDT to match other exchanges' format
+                // The "P" suffix will be added later in compute_display_data for all perpetual contracts
+                result.push_str("USDT");
             }
+            result
+        };
 
-            let c = match value {
-                0..=9 => (b'0' + value as u8) as char,
-                10..=35 => (b'A' + (value as u8 - 10)) as char,
-                _ => unreachable!(),
-            };
-            result.push(c);
-        }
-
-        (result, self.market_type())
+        (result, market_kind)
     }
 
     pub fn market_type(&self) -> MarketKind {
@@ -344,18 +391,118 @@ impl Ticker {
 
 impl fmt::Display for Ticker {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        for i in 0..self.len {
-            let value = (self.data[i as usize / 10] >> ((i % 10) * 6)) & 0x3F;
-            let c = match value {
-                0..=9 => (b'0' + value as u8) as char,
-                10..=35 => (b'A' + (value as u8 - 10)) as char,
-                36 => '_',
-                _ => unreachable!(),
-            };
-            f.write_char(c)?;
-        }
+        f.write_str(self.as_str())
+    }
+}
 
-        Ok(())
+impl fmt::Debug for Ticker {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let (sym, kind) = self.display_symbol_and_type();
+        let internal_sym = self.as_str();
+        if self.has_display_symbol && internal_sym != sym {
+            write!(
+                f,
+                "Ticker({}:{}[{}], {:?})",
+                SerTicker::exchange_to_string(self.exchange),
+                sym,
+                internal_sym,
+                kind
+            )
+        } else {
+            write!(
+                f,
+                "Ticker({}:{}, {:?})",
+                SerTicker::exchange_to_string(self.exchange),
+                sym,
+                kind
+            )
+        }
+    }
+}
+
+impl Serialize for Ticker {
+    fn serialize<S>(&self, serializer: S) -> Result<S::Ok, S::Error>
+    where
+        S: serde::Serializer,
+    {
+        let internal = self.as_str();
+        let exchange = SerTicker::exchange_to_string(self.exchange);
+        let s = if self.has_display_symbol {
+            let display = self.display_as_str();
+            format!("{exchange}:{internal}|{display}")
+        } else {
+            format!("{exchange}:{internal}")
+        };
+        serializer.serialize_str(&s)
+    }
+}
+
+/// Backwards compatible deserializer for Ticker so it won't break old persistent states
+#[derive(Deserialize)]
+#[serde(untagged)]
+enum TickerDe {
+    Str(String),
+    // Old packed format
+    Old {
+        data: [u64; 2],
+        len: u8,
+        exchange: String,
+    },
+}
+impl<'de> Deserialize<'de> for Ticker {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        match TickerDe::deserialize(deserializer)? {
+            TickerDe::Str(s) => {
+                let (exchange_str, rest) = s
+                    .split_once(':')
+                    .ok_or_else(|| serde::de::Error::custom("expected \"Exchange:Symbol\""))?;
+                let exchange = SerTicker::string_to_exchange(exchange_str)
+                    .map_err(serde::de::Error::custom)?;
+
+                let (symbol, display) = if let Some((sym, disp)) = rest.split_once('|') {
+                    (sym, Some(disp))
+                } else {
+                    (rest, None)
+                };
+                Ok(Ticker::new_with_display(symbol, exchange, display))
+            }
+            TickerDe::Old {
+                data,
+                len,
+                exchange,
+            } => {
+                // Decode old 6-bit packed symbol
+                if len as usize > 20 {
+                    return Err(serde::de::Error::custom("old Ticker.len > 20"));
+                }
+
+                let mut symbol = String::with_capacity(len as usize);
+                for i in 0..(len as usize) {
+                    let shift = (i % 10) * 6;
+                    let v = ((data[i / 10] >> shift) & 0x3F) as u8;
+                    let ch = match v {
+                        0..=9 => (b'0' + v) as char,
+                        10..=35 => (b'A' + (v - 10)) as char,
+                        36 => '_',
+                        _ => {
+                            return Err(serde::de::Error::custom(format!(
+                                "invalid old char code {}",
+                                v
+                            )));
+                        }
+                    };
+                    symbol.push(ch);
+                }
+
+                let exchange_enum =
+                    SerTicker::string_to_exchange(&exchange).map_err(serde::de::Error::custom)?;
+
+                Ok(Ticker::new(&symbol, exchange_enum))
+            }
+        }
     }
 }
 
@@ -462,7 +609,7 @@ fn str_f32_parse(s: &str) -> f32 {
     })
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Deserialize, Serialize, Hash)]
 pub struct TickMultiplier(pub u16);
 
 impl std::fmt::Display for TickMultiplier {

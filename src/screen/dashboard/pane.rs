@@ -25,7 +25,7 @@ use data::{
 };
 use exchange::{
     Kline, OpenInterest, TickMultiplier, Ticker, TickerInfo, Timeframe,
-    adapter::{MarketKind, StreamKind},
+    adapter::{MarketKind, StreamKind, StreamTicksize},
 };
 use iced::{
     Alignment, Element, Length, Renderer, Theme,
@@ -126,7 +126,9 @@ impl State {
         self.streams
             .iter()
             .map(|stream| match stream {
-                StreamKind::DepthAndTrades { ticker } | StreamKind::Kline { ticker, .. } => *ticker,
+                StreamKind::DepthAndTrades { ticker, .. } | StreamKind::Kline { ticker, .. } => {
+                    *ticker
+                }
             })
             .next()
     }
@@ -147,7 +149,14 @@ impl State {
 
         let result = match content_str {
             "heatmap" => {
-                let tick_multiplier = Some(TickMultiplier(5));
+                let exchange = ticker.exchange;
+                let is_depth_client_aggr = exchange.is_depth_client_aggr();
+
+                let tick_multiplier = Some(if is_depth_client_aggr {
+                    TickMultiplier(5)
+                } else {
+                    TickMultiplier(10)
+                });
                 self.settings.tick_multiply = tick_multiplier;
                 let tick_size = tick_multiplier.map_or(ticker_info.min_ticksize, |tm| {
                     tm.multiply_with_min_tick_size(ticker_info)
@@ -155,7 +164,14 @@ impl State {
 
                 let content =
                     Content::new_heatmap(&self.content, ticker_info, &self.settings, tick_size);
-                let streams = vec![StreamKind::DepthAndTrades { ticker }];
+                let streams = vec![StreamKind::DepthAndTrades {
+                    ticker,
+                    depth_aggr: if is_depth_client_aggr {
+                        StreamTicksize::Client
+                    } else {
+                        StreamTicksize::ServerSide(TickMultiplier(10))
+                    },
+                }];
                 Ok((content, streams))
             }
             "footprint" => {
@@ -176,11 +192,25 @@ impl State {
                 let basis = self.settings.selected_basis.unwrap_or(Timeframe::M5.into());
                 let streams = match basis {
                     Basis::Time(timeframe) => vec![
-                        StreamKind::DepthAndTrades { ticker },
+                        StreamKind::DepthAndTrades {
+                            ticker,
+                            depth_aggr: if ticker.exchange.is_depth_client_aggr() {
+                                StreamTicksize::Client
+                            } else {
+                                StreamTicksize::ServerSide(TickMultiplier(50))
+                            },
+                        },
                         StreamKind::Kline { ticker, timeframe },
                     ],
                     Basis::Tick(_) => {
-                        vec![StreamKind::DepthAndTrades { ticker }]
+                        vec![StreamKind::DepthAndTrades {
+                            ticker,
+                            depth_aggr: if ticker.exchange.is_depth_client_aggr() {
+                                StreamTicksize::Client
+                            } else {
+                                StreamTicksize::ServerSide(TickMultiplier(50))
+                            },
+                        }]
                     }
                 };
                 Ok((content, streams))
@@ -206,7 +236,14 @@ impl State {
                         vec![StreamKind::Kline { ticker, timeframe }]
                     }
                     Basis::Tick(_) => {
-                        vec![StreamKind::DepthAndTrades { ticker }]
+                        vec![StreamKind::DepthAndTrades {
+                            ticker,
+                            depth_aggr: if ticker.exchange.is_depth_client_aggr() {
+                                StreamTicksize::Client
+                            } else {
+                                StreamTicksize::ServerSide(TickMultiplier(50))
+                            },
+                        }]
                     }
                 };
                 Ok((content, streams))
@@ -217,7 +254,14 @@ impl State {
                     .visual_config
                     .and_then(|cfg| cfg.time_and_sales());
                 let content = Content::TimeAndSales(TimeAndSales::new(config, Some(ticker_info)));
-                let streams = vec![StreamKind::DepthAndTrades { ticker }];
+                let streams = vec![StreamKind::DepthAndTrades {
+                    ticker,
+                    depth_aggr: if ticker.exchange.is_depth_client_aggr() {
+                        StreamTicksize::Client
+                    } else {
+                        StreamTicksize::ServerSide(TickMultiplier(50))
+                    },
+                }];
                 Ok((content, streams))
             }
             _ => Err(DashboardError::PaneSet(
@@ -381,9 +425,15 @@ impl State {
 
                 let base_ticksize = tick_multiply.base(chart.tick_size());
 
+                let exchange = self
+                    .settings
+                    .ticker_info
+                    .as_ref()
+                    .map(|info| info.ticker.exchange);
+
                 let modifiers = row![
                     basis_modifier(id, selected_basis, modifier, kind),
-                    ticksize_modifier(id, base_ticksize, tick_multiply, modifier, kind),
+                    ticksize_modifier(id, base_ticksize, tick_multiply, modifier, kind, exchange),
                 ]
                 .spacing(4);
 
@@ -416,9 +466,22 @@ impl State {
 
                         let base_ticksize = tick_multiply.base(chart.tick_size());
 
+                        let exchange = self
+                            .settings
+                            .ticker_info
+                            .as_ref()
+                            .map(|info| info.ticker.exchange);
+
                         let modifiers = row![
                             basis_modifier(id, selected_basis, modifier, kind),
-                            ticksize_modifier(id, base_ticksize, tick_multiply, modifier, kind),
+                            ticksize_modifier(
+                                id,
+                                base_ticksize,
+                                tick_multiply,
+                                modifier,
+                                kind,
+                                exchange
+                            ),
                         ]
                         .spacing(4);
 
@@ -1118,9 +1181,10 @@ fn ticksize_modifier<'a>(
     multiplier: TickMultiplier,
     modifier: Option<modal::stream::Modifier>,
     kind: ModifierKind,
+    exchange: Option<exchange::adapter::Exchange>,
 ) -> Element<'a, Message> {
     let modifier_modal = Modal::StreamModifier(
-        modal::stream::Modifier::new(kind).with_ticksize_view(base_ticksize, multiplier),
+        modal::stream::Modifier::new(kind).with_ticksize_view(base_ticksize, multiplier, exchange),
     );
 
     let is_active = modifier.is_some_and(|m| {

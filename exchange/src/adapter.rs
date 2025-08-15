@@ -1,5 +1,5 @@
 use super::{Ticker, Timeframe};
-use crate::{Kline, OpenInterest, TickerInfo, TickerStats, Trade, depth::Depth};
+use crate::{Kline, OpenInterest, TickMultiplier, TickerInfo, TickerStats, Trade, depth::Depth};
 
 use serde::{Deserialize, Serialize};
 use std::{
@@ -9,6 +9,7 @@ use std::{
 
 pub mod binance;
 pub mod bybit;
+pub mod hyperliquid;
 
 #[derive(thiserror::Error, Debug)]
 pub enum AdapterError {
@@ -66,19 +67,21 @@ pub enum StreamKind {
     },
     DepthAndTrades {
         ticker: Ticker,
+        #[serde(default = "default_depth_aggr")]
+        depth_aggr: StreamTicksize,
     },
 }
 
 impl StreamKind {
     pub fn ticker(&self) -> Ticker {
         match self {
-            StreamKind::Kline { ticker, .. } | StreamKind::DepthAndTrades { ticker } => *ticker,
+            StreamKind::Kline { ticker, .. } | StreamKind::DepthAndTrades { ticker, .. } => *ticker,
         }
     }
 
-    pub fn as_depth_stream(&self) -> Option<Ticker> {
+    pub fn as_depth_stream(&self) -> Option<(Ticker, StreamTicksize)> {
         match self {
-            StreamKind::DepthAndTrades { ticker } => Some(*ticker),
+            StreamKind::DepthAndTrades { ticker, depth_aggr } => Some((*ticker, *depth_aggr)),
             _ => None,
         }
     }
@@ -115,7 +118,7 @@ impl UniqueStreams {
 
     pub fn add(&mut self, stream: StreamKind) {
         let (exchange, ticker) = match stream {
-            StreamKind::Kline { ticker, .. } | StreamKind::DepthAndTrades { ticker } => {
+            StreamKind::Kline { ticker, .. } | StreamKind::DepthAndTrades { ticker, .. } => {
                 (ticker.exchange, ticker)
             }
         };
@@ -175,21 +178,15 @@ impl UniqueStreams {
         }
     }
 
-    pub fn depth_streams(&self, exchange_filter: Option<Exchange>) -> Vec<(Exchange, Ticker)> {
-        self.streams(exchange_filter, |exchange, stream| {
-            stream.as_depth_stream().map(|ticker| (exchange, ticker))
-        })
-    }
-
-    pub fn kline_streams(
+    pub fn depth_streams(
         &self,
         exchange_filter: Option<Exchange>,
-    ) -> Vec<(Exchange, Ticker, Timeframe)> {
-        self.streams(exchange_filter, |exchange, stream| {
-            stream
-                .as_kline_stream()
-                .map(|(ticker, timeframe)| (exchange, ticker, timeframe))
-        })
+    ) -> Vec<(Ticker, StreamTicksize)> {
+        self.streams(exchange_filter, |_, stream| stream.as_depth_stream())
+    }
+
+    pub fn kline_streams(&self, exchange_filter: Option<Exchange>) -> Vec<(Ticker, Timeframe)> {
+        self.streams(exchange_filter, |_, stream| stream.as_kline_stream())
     }
 
     pub fn combined(&self) -> &HashMap<Exchange, StreamSpecs> {
@@ -197,10 +194,21 @@ impl UniqueStreams {
     }
 }
 
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
+pub enum StreamTicksize {
+    ServerSide(TickMultiplier),
+    #[default]
+    Client,
+}
+
+fn default_depth_aggr() -> StreamTicksize {
+    StreamTicksize::Client
+}
+
 #[derive(Debug, Clone, Default)]
 pub struct StreamSpecs {
-    pub depth: Vec<(Exchange, Ticker)>,
-    pub kline: Vec<(Exchange, Ticker, Timeframe)>,
+    pub depth: Vec<(Ticker, StreamTicksize)>,
+    pub kline: Vec<(Ticker, Timeframe)>,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
@@ -211,6 +219,8 @@ pub enum Exchange {
     BybitLinear,
     BybitInverse,
     BybitSpot,
+    HyperliquidLinear,
+    HyperliquidSpot,
 }
 
 impl std::fmt::Display for Exchange {
@@ -225,6 +235,8 @@ impl std::fmt::Display for Exchange {
                 Exchange::BybitLinear => "Bybit Linear",
                 Exchange::BybitInverse => "Bybit Inverse",
                 Exchange::BybitSpot => "Bybit Spot",
+                Exchange::HyperliquidLinear => "Hyperliquid Linear",
+                Exchange::HyperliquidSpot => "Hyperliquid Spot",
             }
         )
     }
@@ -241,26 +253,56 @@ impl FromStr for Exchange {
             "Bybit Linear" => Ok(Exchange::BybitLinear),
             "Bybit Inverse" => Ok(Exchange::BybitInverse),
             "Bybit Spot" => Ok(Exchange::BybitSpot),
+            "Hyperliquid Linear" => Ok(Exchange::HyperliquidLinear),
+            "Hyperliquid Spot" => Ok(Exchange::HyperliquidSpot),
             _ => Err(format!("Invalid exchange: {}", s)),
         }
     }
 }
 
 impl Exchange {
-    pub const ALL: [Exchange; 6] = [
+    pub const ALL: [Exchange; 8] = [
         Exchange::BinanceLinear,
         Exchange::BinanceInverse,
         Exchange::BinanceSpot,
         Exchange::BybitLinear,
         Exchange::BybitInverse,
         Exchange::BybitSpot,
+        Exchange::HyperliquidLinear,
+        Exchange::HyperliquidSpot,
     ];
 
     pub fn market_type(&self) -> MarketKind {
         match self {
-            Exchange::BinanceLinear | Exchange::BybitLinear => MarketKind::LinearPerps,
+            Exchange::BinanceLinear | Exchange::BybitLinear | Exchange::HyperliquidLinear => {
+                MarketKind::LinearPerps
+            }
             Exchange::BinanceInverse | Exchange::BybitInverse => MarketKind::InversePerps,
-            Exchange::BinanceSpot | Exchange::BybitSpot => MarketKind::Spot,
+            Exchange::BinanceSpot | Exchange::BybitSpot | Exchange::HyperliquidSpot => {
+                MarketKind::Spot
+            }
+        }
+    }
+
+    pub fn is_depth_client_aggr(&self) -> bool {
+        matches!(
+            self,
+            Exchange::BinanceLinear
+                | Exchange::BinanceInverse
+                | Exchange::BybitLinear
+                | Exchange::BybitInverse
+                | Exchange::BinanceSpot
+                | Exchange::BybitSpot
+        )
+    }
+
+    pub fn supports_heatmap_timeframe(&self, tf: Timeframe) -> bool {
+        match self {
+            Exchange::BybitSpot => tf != Timeframe::MS100,
+            Exchange::HyperliquidLinear | Exchange::HyperliquidSpot => {
+                tf != Timeframe::MS100 && tf != Timeframe::MS200
+            }
+            _ => true,
         }
     }
 }
@@ -277,12 +319,17 @@ pub enum Event {
 pub struct StreamConfig<I> {
     pub id: I,
     pub market_type: MarketKind,
+    pub tick_mltp: Option<TickMultiplier>,
 }
 
 impl<I> StreamConfig<I> {
-    pub fn new(id: I, exchange: Exchange) -> Self {
+    pub fn new(id: I, exchange: Exchange, tick_mltp: Option<TickMultiplier>) -> Self {
         let market_type = exchange.market_type();
-        Self { id, market_type }
+        Self {
+            id,
+            market_type,
+            tick_mltp,
+        }
     }
 }
 
@@ -297,6 +344,9 @@ pub async fn fetch_ticker_info(
         }
         Exchange::BybitLinear | Exchange::BybitInverse | Exchange::BybitSpot => {
             bybit::fetch_ticksize(market_type).await
+        }
+        Exchange::HyperliquidLinear | Exchange::HyperliquidSpot => {
+            hyperliquid::fetch_ticksize(market_type).await
         }
     }
 }
@@ -313,6 +363,9 @@ pub async fn fetch_ticker_prices(
         Exchange::BybitLinear | Exchange::BybitInverse | Exchange::BybitSpot => {
             bybit::fetch_ticker_prices(market_type).await
         }
+        Exchange::HyperliquidLinear | Exchange::HyperliquidSpot => {
+            hyperliquid::fetch_ticker_prices(market_type).await
+        }
     }
 }
 
@@ -328,6 +381,9 @@ pub async fn fetch_klines(
         }
         Exchange::BybitLinear | Exchange::BybitInverse | Exchange::BybitSpot => {
             bybit::fetch_klines(ticker, timeframe, range).await
+        }
+        Exchange::HyperliquidLinear | Exchange::HyperliquidSpot => {
+            hyperliquid::fetch_klines(ticker, timeframe, range).await
         }
     }
 }

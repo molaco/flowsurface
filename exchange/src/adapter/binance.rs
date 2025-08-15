@@ -1,3 +1,5 @@
+use crate::adapter::StreamTicksize;
+
 use super::{
     super::{
         Exchange, Kline, MarketKind, OpenInterest, SIZE_IN_QUOTE_CURRENCY, StreamKind, Ticker,
@@ -469,6 +471,8 @@ pub fn connect_market_stream(ticker: Ticker) -> impl Stream<Item = Event> {
                                                             .send(Event::DepthReceived(
                                                                 StreamKind::DepthAndTrades {
                                                                     ticker,
+                                                                    depth_aggr:
+                                                                        StreamTicksize::Client,
                                                                 },
                                                                 de_depth.time,
                                                                 orderbook.depth.clone(),
@@ -529,6 +533,8 @@ pub fn connect_market_stream(ticker: Ticker) -> impl Stream<Item = Event> {
                                                             .send(Event::DepthReceived(
                                                                 StreamKind::DepthAndTrades {
                                                                     ticker,
+                                                                    depth_aggr:
+                                                                        StreamTicksize::Client,
                                                                 },
                                                                 de_depth.time,
                                                                 orderbook.depth.clone(),
@@ -777,7 +783,7 @@ async fn fetch_depth(
     };
 
     let limiter = limiter_from_market_type(market_type);
-    let text = crate::limiter::http_request_with_limiter(&url, limiter, weight).await?;
+    let text = crate::limiter::http_request_with_limiter(&url, limiter, weight, None, None).await?;
 
     let size_in_quote_currency = SIZE_IN_QUOTE_CURRENCY.get() == Some(&true);
 
@@ -936,7 +942,7 @@ pub async fn fetch_klines(
     };
 
     let limiter = limiter_from_market_type(market_type);
-    let text = crate::limiter::http_request_with_limiter(&url, limiter, weight).await?;
+    let text = crate::limiter::http_request_with_limiter(&url, limiter, weight, None, None).await?;
 
     let fetched_klines: Vec<FetchedKlines> = serde_json::from_str(&text)
         .map_err(|e| AdapterError::ParseError(format!("Failed to parse klines: {e}")))?;
@@ -1090,7 +1096,7 @@ pub async fn fetch_ticker_prices(
     };
 
     let limiter = limiter_from_market_type(market);
-    let text = crate::limiter::http_request_with_limiter(&url, limiter, weight).await?;
+    let text = crate::limiter::http_request_with_limiter(&url, limiter, weight, None, None).await?;
 
     let value: Vec<serde_json::Value> = serde_json::from_str(&text)
         .map_err(|e| AdapterError::ParseError(format!("Failed to parse prices: {e}")))?;
@@ -1244,7 +1250,7 @@ pub async fn fetch_historical_oi(
     }
 
     let limiter = limiter_from_market_type(market);
-    let text = crate::limiter::http_request_with_limiter(&url, limiter, weight).await?;
+    let text = crate::limiter::http_request_with_limiter(&url, limiter, weight, None, None).await?;
 
     let binance_oi: Vec<DeOpenInterest> = serde_json::from_str(&text).map_err(|e| {
         log::error!(
@@ -1313,7 +1319,7 @@ pub async fn fetch_intraday_trades(ticker: Ticker, from: u64) -> Result<Vec<Trad
     url.push_str(&format!("&startTime={from}"));
 
     let limiter = limiter_from_market_type(market_type);
-    let text = crate::limiter::http_request_with_limiter(&url, limiter, weight).await?;
+    let text = crate::limiter::http_request_with_limiter(&url, limiter, weight, None, None).await?;
 
     let trades: Vec<Trade> = {
         let de_trades: Vec<SonicTrade> = sonic_rs::from_str(&text)
