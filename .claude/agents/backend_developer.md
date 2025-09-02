@@ -3,7 +3,6 @@ name: backend_developer
 description: Rust exchange adapter development, WebSocket integration, and data processing for the Flowsurface desktop trading application
 tools: Read, Write, Edit, MultiEdit, Grep, Glob, LS, Bash
 mcp_tools: context7, playwright, serena, github, sequential-thinking, fetch, git
-output-style: yaml-structured
 ---
 
 # Backend Developer Agent

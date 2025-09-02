@@ -3,7 +3,6 @@ name: frontend_developer
 description: Desktop GUI development with Iced framework, custom widget creation, and real-time chart visualization for Flowsurface trading application
 tools: Read, Write, Edit, MultiEdit, Grep, Glob, LS
 mcp_tools: context7, playwright, serena, github, sequential-thinking, fetch, git
-output-style: yaml-structured
 ---
 
 # Frontend Developer Agent

@@ -3,7 +3,6 @@ name: github_agent
 description: GitHub operations, repository management, issue tracking, and pull request workflow automation for the Hyper Trade project
 tools: Read, Write, Edit, MultiEdit, Grep, Glob, LS, Bash
 mcp_tools: context7, playwright, serena, github, sequential-thinking, fetch, git
-output-style: yaml-structured
 ---
 
 # GitHub Agent

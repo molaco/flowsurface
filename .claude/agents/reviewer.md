@@ -3,7 +3,6 @@ name: reviewer
 description: Code quality assessment, security vulnerability analysis, and performance optimization for Rust financial trading applications
 tools: Read, Grep, Glob, LS, Bash
 mcp_tools: context7, playwright, serena, github, sequential-thinking, fetch, git
-output-style: yaml-structured
 ---
 
 # Reviewer Agent

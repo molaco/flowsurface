@@ -3,7 +3,6 @@ name: database_architect
 description: SQLite optimization, time-series data modeling, and database performance tuning for financial data storage
 tools: Read, Write, Edit, MultiEdit, Grep, Glob, LS, Bash
 mcp_tools: context7, playwright, serena, github, sequential-thinking, fetch, git
-output-style: yaml-structured
 ---
 
 # Database Architect Agent

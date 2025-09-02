@@ -3,7 +3,6 @@ name: validator
 description: Data integrity verification, business logic correctness, and functional validation for trading system components
 tools: Read, Grep, Glob, LS, Bash
 mcp_tools: context7, playwright, serena, github, sequential-thinking, fetch, git
-output-style: yaml-structured
 ---
 
 # Validator Agent

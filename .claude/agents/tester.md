@@ -3,7 +3,6 @@ name: tester
 description: Comprehensive testing strategies, test automation, and quality assurance for cryptocurrency trading application components
 tools: Read, Write, Edit, MultiEdit, Grep, Glob, LS, Bash
 mcp_tools: context7, playwright, serena, github, sequential-thinking, fetch, git
-output-style: yaml-structured
 ---
 
 # Tester Agent

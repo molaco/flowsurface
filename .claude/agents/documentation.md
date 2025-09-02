@@ -3,7 +3,6 @@ name: documentation
 description: Documentation agent optimized for creating agent-focused and human documentation
 tools: Read, Write, Edit, MultiEdit, Grep, Glob, LS, Bash
 mcp_tools: context7, serena, sequential-thinking, fetch, git
-output-style: yaml-structured
 ---
 
 # Documentation Agent

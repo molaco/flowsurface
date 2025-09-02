@@ -1,7 +1,6 @@
 ---
 allowed-tools: Read, Write, Edit, MultiEdit, TodoWrite, Task
 description: Main documentation orchestrator that manages documentation workflows following RULES.md
-output-style: yaml-structured
 ---
 
 # Documentation Command

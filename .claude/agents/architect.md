@@ -3,7 +3,6 @@ name: architect
 description: System architecture design, technology evaluation, and high-level technical decisions for the Flowsurface desktop trading application
 tools: Read, Write, Edit, MultiEdit, Grep, Glob, LS
 mcp_tools: context7, playwright, serena, github, sequential-thinking, fetch, git
-output-style: yaml-structured
 ---
 
 # Architect Agent

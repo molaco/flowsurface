@@ -1,7 +1,6 @@
 ---
 allowed-tools: Read, Write, Edit, MultiEdit, TodoWrite, Task
 description: Main orchestrator agent that manages multi-agent workflows according to RULES.md
-output-style: yaml-structured
 ---
 
 # Main Orchestrator Agent
