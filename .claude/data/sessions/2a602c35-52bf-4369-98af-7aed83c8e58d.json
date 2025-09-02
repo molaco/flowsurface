@@ -1,0 +1,7 @@
+{
+  "session_id": "2a602c35-52bf-4369-98af-7aed83c8e58d",
+  "prompts": [
+    " /documentation \"continue developing agent documentation\" --agent-context --update",
+    " /documentation \"continue developing agent documentation\" --agent-context --update --documentation"
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "session_id": "aaafbe94-006e-45dc-b817-878a844ee839",
+  "prompts": [
+    "just buy reading @docs/* @AGENT_CONTEXT.md @CLAUDE.md tell me about the codebase what does it do and how it works"
+  ]
+}

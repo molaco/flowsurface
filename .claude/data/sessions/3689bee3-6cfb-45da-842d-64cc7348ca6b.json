@@ -1,0 +1,6 @@
+{
+  "session_id": "3689bee3-6cfb-45da-842d-64cc7348ca6b",
+  "prompts": [
+    "look at @PLAN.md @hyper_trade/COMPREHENSIVE_VALIDATION_RESULTS.md @hyper_trade/WEBSOCKET_MARKET_DATA_VALIDATION_REPORT.md and @hyper_trade/SUMMARY.md. i want you to review the implementation and  create a file REVIEW.md with a summary of it. i want to now if the plan was succesfully implemented and what are some issues in current code. because im not getting the updates for the landing page (no price, no volume 24h and no change 24h)"
+  ]
+}

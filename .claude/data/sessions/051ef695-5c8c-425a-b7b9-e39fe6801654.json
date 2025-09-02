@@ -1,0 +1,6 @@
+{
+  "session_id": "051ef695-5c8c-425a-b7b9-e39fe6801654",
+  "prompts": [
+    "my footprint chart is not working properly. i want to redo the whole thing. here you have i guide of how to use plugins in lightweight charts @PLUGINS.md. the volume profile example is here @lightweight-charts/plugin-examples/src/plugins/volume-profile/ you should put toguether a plan PROFILE.md where you specify files we need to change/update/remove, functions we need to change/update/remove in a step by step fashion outlining backend phase, frontend phase, ... and specifiyin particular agent needed for each step/task/phase. the plan should consider current implementation of the volume footprint stuff is very bad and try and remove everything that is not neceseary. what i mean by this is that you should focus in implementation according to the plugin guide and example provided and think about it as if non of the current footprint stuff in the codespace was implemented. then if some stuff between your new plugin idea implementation corresponds with current volume footprint impl then you can reuse or modify the code but try and remove as much stuff from current footprint implementation that we dont need and is wrong. remember this is a plan."
+  ]
+}

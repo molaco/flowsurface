@@ -1,0 +1,6 @@
+{
+  "session_id": "35905c94-0b40-4633-bd30-13d511ed57b4",
+  "prompts": [
+    "/main i want transform my one page application into a two page application. lest make it very simple no css no styling. dont change anything of the current two pane setup. just add a initial page from where to choose between the tracked pairs with a button \"see chart\" that takes you to our current single page implementation --implementation  "
+  ]
+}

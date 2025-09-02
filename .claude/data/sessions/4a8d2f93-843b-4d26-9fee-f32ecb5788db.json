@@ -1,0 +1,6 @@
+{
+  "session_id": "4a8d2f93-843b-4d26-9fee-f32ecb5788db",
+  "prompts": [
+    "can you create a yaml for @.claude/workflows/my_workflow.md called implementation.yaml (be very concise) and fix @.claude/commands/main.md accordingly"
+  ]
+}

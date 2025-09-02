@@ -1,0 +1,7 @@
+{
+  "session_id": "3f4466c3-a7af-4ba9-85dc-1a95b5146c87",
+  "prompts": [
+    "tell me what got done from @NEW_PLAN.md ",
+    "do a complete implementation plan in @FINAL_PLAN.md with snippets of what to do and files and all "
+  ]
+}

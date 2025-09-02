@@ -1,0 +1,10 @@
+{
+  "session_id": "8d4024f0-36e6-468c-8a38-6f533b991c9c",
+  "prompts": [
+    "can we current market data? i want you to create a plan. i want to remove current start_market_data_cache_updater, update_market_data_cache, get_perps_universe, create_default_market_data, get_market_data_direct, start_market_data_cache_updater, update_market_data_cache, extract_market_data_from_context, MarketData, MarketDataCache  in @hyper_trade/src/handlers/api.rs . instead of using this just use pub async fn spot_meta_and_asset_contexts(&self) -> Result<Vec<SpotMetaAndAssetCtxs>> {\n        let input = InfoRequest::SpotMetaAndAssetCtxs {};\n        self.send_info_request(input).await\n    }",
+    "can we current market data? i want you to create a plan. i want to remove current start_market_data_cache_updater, update_market_data_cache, get_perps_universe, create_default_market_data, get_market_data_direct, start_market_data_cache_updater, update_market_data_cache, extract_market_data_from_context, MarketData, MarketDataCache  in @hyper_trade/src/handlers/api.rs . instead of using this just use pub async fn shared_asset_context(&self) -> Result<Vec<SharedAssetCtx>> {\n        let input = InfoRequest::SharedAssetCtx { coins};\n        self.send_info_request(input).await\n    } we have use some similar patterns in the code for candles and tick data. check out the docs with context7 mcp or sth the link is https://docs.rs/hyperliquid_rust_sdk/latest/hyperliquid_rust_sdk/index.html",
+    "write down the plan in PLAN.md",
+    "what do you need the universe for?",
+    "keep it. but add a snippet of get_shared_market_ctx function"
+  ]
+}

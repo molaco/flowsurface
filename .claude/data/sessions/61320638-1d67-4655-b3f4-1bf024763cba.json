@@ -1,0 +1,8 @@
+{
+  "session_id": "61320638-1d67-4655-b3f4-1bf024763cba",
+  "prompts": [
+    "how much usage do i have left?",
+    "can i decrease the volume of tts in @.claude/hooks/utils/tts/elevenlabs_tts.py ??",
+    "can you search for files with an i in current dir?"
+  ]
+}

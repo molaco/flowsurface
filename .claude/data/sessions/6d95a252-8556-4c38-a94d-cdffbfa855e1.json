@@ -1,0 +1,10 @@
+{
+  "session_id": "6d95a252-8556-4c38-a94d-cdffbfa855e1",
+  "prompts": [
+    "how can i make sure my main agent uses @.claude/workflows/my_workflow.md when a call it @.claude/commands/main.md ",
+    "implement 1 and tell me more about 3",
+    "ok but just re write ## workflow and ## workflow templates in @.claude/commands/main.md be concise",
+    "but my workflows are .md fiels",
+    "why you write based on yaml frontmatter?"
+  ]
+}

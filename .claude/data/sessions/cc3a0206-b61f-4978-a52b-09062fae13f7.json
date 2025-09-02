@@ -1,0 +1,9 @@
+{
+  "session_id": "cc3a0206-b61f-4978-a52b-09062fae13f7",
+  "prompts": [
+    "explain @hyper_trade/src/handlers/api.rs  get_candles method",
+    "could we not replace it by candles_snapshot method. use context7 to refer to hyperliquid_rust_sdk docs https://docs.rs/hyperliquid_rust_sdk/latest/hyperliquid_rust_sdk/index.html",
+    "just replace the fucking part where we call hyperliquid api??",
+    "not this is not what i wanted you to do"
+  ]
+}

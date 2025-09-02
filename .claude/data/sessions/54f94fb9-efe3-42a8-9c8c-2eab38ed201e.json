@@ -1,0 +1,8 @@
+{
+  "session_id": "54f94fb9-efe3-42a8-9c8c-2eab38ed201e",
+  "prompts": [
+    "dont read any of my files. i was told claude code 1.0.86 now has token count in status line. i updated but i dont see it",
+    "but thats something i implemented",
+    "what about the feature announced by anthropic. can you read claude code changelong.md and look for how to enable it?"
+  ]
+}

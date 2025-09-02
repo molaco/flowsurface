@@ -1,0 +1,7 @@
+{
+  "session_id": "6a1ddfcc-6e78-4c07-a52e-936695ba8dc5",
+  "prompts": [
+    "is there missing stuff from @PLAN.md in @FINAL_PLAN.md ??",
+    "/main --super_fast  @FINAL_PLAN.md"
+  ]
+}

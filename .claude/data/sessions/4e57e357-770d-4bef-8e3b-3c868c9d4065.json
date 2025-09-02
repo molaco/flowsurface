@@ -1,0 +1,6 @@
+{
+  "session_id": "4e57e357-770d-4bef-8e3b-3c868c9d4065",
+  "prompts": [
+    "/changes --update update the recent changes @NEW_PLAN.md @RESULT.md "
+  ]
+}

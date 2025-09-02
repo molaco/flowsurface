@@ -1,0 +1,11 @@
+{
+  "session_id": "f9744305-a980-4ea1-ac25-899eee4057fa",
+  "prompts": [
+    "does @PLAN-frontend_developer.md align with @lightweight-charts/plugin-examples/src/plugins/volume-profile/volume-profile.ts ??",
+    "use playwright to check https://tradingview.github.io/lightweight-charts/plugin-examples/plugins/volume-profile/example/     and tell me what resemblance does it have with my implementation plan ",
+    "ok but we do have horizontal volume bars to represent each price point corresponding to each candle at any specific timeframe right? just tell me dont change anything.",
+    "and we have candles too?",
+    "how do candles and volume profile work together?",
+    "and this happens for each candle right? for each candle we get its corresponding volume profile and they move together with the zoom and exapnd?"
+  ]
+}

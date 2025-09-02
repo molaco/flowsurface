@@ -1,0 +1,7 @@
+{
+  "session_id": "653dbbda-3be2-4f45-af50-20c5c5f87365",
+  "prompts": [
+    "serena load hyper and look @design_review.md its an old file and may not represent the current codebase. tell me useful stuff in the file for new design implementation",
+    "could you create a file in project root and write down these insights?"
+  ]
+}

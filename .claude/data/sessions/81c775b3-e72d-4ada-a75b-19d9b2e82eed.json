@@ -1,0 +1,6 @@
+{
+  "session_id": "81c775b3-e72d-4ada-a75b-19d9b2e82eed",
+  "prompts": [
+    "/main --fast refactor css in @hyper_trade/web/index.html so that it is separate from html file and also the js. you can look at @hyper_trade/web/chart.html for example"
+  ]
+}

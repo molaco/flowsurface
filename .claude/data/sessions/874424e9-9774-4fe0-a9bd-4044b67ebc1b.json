@@ -1,0 +1,7 @@
+{
+  "session_id": "874424e9-9774-4fe0-a9bd-4044b67ebc1b",
+  "prompts": [
+    "/main use @PRICE.md to implement better price in landing page @hyper_trade/web/index.html with 24h price change and 24h volume change --fast",
+    "could you go into @.claude/docs/ and look at the files? i think all correspond to the lastest hyperliquid rust sdk utils implementation and its use in hyper_trade but let me know if otherwise. i want you to make i concise document so that i can reviwe the implementation details and how to use the new implemented stuff. you can use the documentation agent if you need him."
+  ]
+}

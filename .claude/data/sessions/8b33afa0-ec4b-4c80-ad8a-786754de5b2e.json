@@ -1,0 +1,11 @@
+{
+  "session_id": "8b33afa0-ec4b-4c80-ad8a-786754de5b2e",
+  "prompts": [
+    "what sub agents would you consider for my repo?",
+    "what sub agents would you consider for my repo? just look at @CLAUDE.md dont look at any other files.",
+    "what about a little more general agents?",
+    "could you create and populate files for the following agents:  architect, fornt end developer, back end developr , reviewer, validator, database architect, tester",
+    "add this to each agent. modify accordingly. ---\nname: your-sub-agent-name\ndescription: Description of when this subagent should be invoked\ntools: tool1, tool2, tool3  # Optional - inherits all tools if omitted\n---",
+    "make so that each agent uses output-style yaml-structured. i want each agent to create a yaml file with their name in .claude/responses/"
+  ]
+}

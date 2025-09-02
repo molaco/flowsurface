@@ -1,0 +1,6 @@
+{
+  "session_id": "4efa6cc3-6c10-4251-8221-d4b8732fc002",
+  "prompts": [
+    "i just added @AGENT_CONTEXT.md @.claude/agents/* @FLAGS.md @RULES.md @.claude/commands could adapt all these files to this codebase @CLAUDE.md its new and should contain relevant info on the project. please do serena onboarding and load the project before doing anything."
+  ]
+}

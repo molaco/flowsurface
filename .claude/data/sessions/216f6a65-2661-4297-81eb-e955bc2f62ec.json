@@ -1,0 +1,9 @@
+{
+  "session_id": "216f6a65-2661-4297-81eb-e955bc2f62ec",
+  "prompts": [
+    "create @PLAN.md detiled plan to integrate @lightweight-charts/plugin-examples/src/plugins/volume-profile/ @lightweight-charts/plugin-examples/src/plugins/volume-profile/volume-profile.ts. i want to create a separate page to have a volume footprint chart like @pics/b-shaped-profile-footprint-pattern.png.webp @pics/profile_footprint.png. would you be able to do this tell me any missing stuff you need to make this process as smooth as possible.",
+    "/main in @PLAN.md differientate for each steps which agents are appropiate and call them with the flag --plan pass them the whole plan and tell them what they need to focus on. i want them to create a file PLAN-{agent-name}.md where they write down what they think if that part of the implementaion plan that corresponds to them and write a very specific plan with full code snippets on what needs to get done. once they finish check the have create the file and review the agent specific plan. once you have finished the review of each of the agents you chose to call then write @REVIEW.md a summary of your review of each one of the agent specific plans. ",
+    "what would we achieve with the agent specific plans?",
+    "would these plans be able to make my volume footprint chart?"
+  ]
+}

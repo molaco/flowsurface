@@ -1,0 +1,12 @@
+{
+  "session_id": "56df4455-8b89-4b1b-9dd1-4bff1e448e61",
+  "prompts": [
+    "how to get order book data?",
+    "do we already have exposed order book data in hyperliquid_rust_sdk_utils?",
+    "would it be better to implent this in hyperliquid_rust_sdk_utils?",
+    "should we do it in Prices struct or a new struct?",
+    "should we differentiate prices and another struct for market stats? i see in hyper_trade we create new Prices struct for market stats but i dont know if this makes us fetch some data we use in cnadles two times or sth.",
+    "is it a duplication because maybe we are not calling the methods for tick data when using the market data and viceversa",
+    "could you create a file CONCERNS.md outlining my concers regarding current architecture? "
+  ]
+}

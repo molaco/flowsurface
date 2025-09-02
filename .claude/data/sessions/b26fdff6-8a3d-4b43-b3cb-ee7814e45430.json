@@ -1,0 +1,10 @@
+{
+  "session_id": "b26fdff6-8a3d-4b43-b3cb-ee7814e45430",
+  "prompts": [
+    "i tried to implement @NEW_PLAN.md could you check out git diff and tell me what got done?",
+    "could you write in RESULT.md a summary of what i asked for,  what got done, what is missing and a detailed plan of how to implement the rest?",
+    "could you be more detailed in the implementation plan in  @RESULT.md i need more snippets. there were a lot of snippets in @NEW_PLAN.md but maybe you need to adapt to what got implemented",
+    "\u007f/clear",
+    "/main implement @RESULT.md with workflow --super_fast"
+  ]
+}

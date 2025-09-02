@@ -1,0 +1,6 @@
+{
+  "session_id": "6eb828ad-8a59-4c54-9777-4e2b32140781",
+  "prompts": [
+    "only read and modify @RULES.md in the same format add rule 3. to always use mcp servers if using them can offer better responses, performance, ... also list the aviable mcp servers."
+  ]
+}

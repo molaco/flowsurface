@@ -1,0 +1,7 @@
+{
+  "session_id": "d1120f39-b5a9-472b-9ce6-4dde71aeed80",
+  "prompts": [
+    "would you be able to identify what mode are we running on this proompt?",
+    "in my @RULES.md i have written to save responses to yaml in a specific directory. With out doing any changes tell me how would i be able to (using yaml) save output of each agent in yaml grouped by session id and have the subagents access it only during --build flag after calling a --plan flag. And also only read last (just one)  response. with out needing to read the whole file."
+  ]
+}

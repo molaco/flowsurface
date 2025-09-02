@@ -1,0 +1,6 @@
+{
+  "session_id": "6d3e4a49-a767-4246-b257-a6c8fb08bd31",
+  "prompts": [
+    "/documentation update the documentation to reflect the lastest changes @NEW_PLAN.md @RESULT.md --update --agent-context"
+  ]
+}

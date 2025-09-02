@@ -1,0 +1,8 @@
+{
+  "session_id": "74afd09e-5660-4306-842a-7feea970a1b8",
+  "prompts": [
+    "use context7 mcp to check if our create @hyperliquid_rust_sdk_utils/ is overengineered and we could just use the official hyperliquid rust sdk. to make my self clear, review the official hyperliquid rust sdk with context7 mcp and compare with our crate.",
+    "\u007f\u007fbe very critical of these findings and review @NEW_PLAN.md @PLAN.md @CONCERNS.md @CONSIDERATIONS.md @SDK_COMPARISON.md to develop a well structured plan on key decisions about what we need to reimplent, remove, or build from scratch to make our lib (hyperliquid_rust_sdk_utils) make sens and work together with our crate (hyper_trade) to bring the most out of them and have the best most logical, best architecture, best everything framework we can be sure is a fundamental piece of software for our trading application but be sure to remain with in the boundries of our current objectives which are to improve our existing code and include the order book data. also consider tick data.",
+    "create a file REAL.md and save the analysis"
+  ]
+}

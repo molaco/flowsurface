@@ -1,0 +1,15 @@
+{
+  "session_id": "bc845ef3-a447-4fe3-acb3-307cd34b018f",
+  "prompts": [
+    "call front end agent --plan error with volume toggle button. it does not work.",
+    "call review agent --plan --adversary to review the plan",
+    "tell me the plan",
+    "tell the review agent to use playright to see if the button works and to reflect on his previous review",
+    "tell the front end agent to use playright-mcp (already configured)  to see if the button works",
+    "call the front end agent --plan --adversary --simple to make a simpler fix based on the original plan",
+    "what did the frontedn dev tell you?",
+    "ok implement that.",
+    "its defenetly not working",
+    "bro you never took a screenshot of the fucking volume pane being disabled all the screenshots you took were just with the volume on. how tf can you say its working ?"
+  ]
+}

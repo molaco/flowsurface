@@ -1,0 +1,6 @@
+{
+  "session_id": "3ebee13a-d295-41de-884a-f529962b6e81",
+  "prompts": [
+    "/main for each plan in @SPEC/ pass it to the correct agent for implementation with the flag --build"
+  ]
+}

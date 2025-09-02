@@ -1,0 +1,6 @@
+{
+  "session_id": "aa0ce20f-c4a4-4b88-9d8a-f388b7db4754",
+  "prompts": [
+    "\u007f\u007f\u007fi dont see anything in the footprint chart. Using database URL: ./btc_candles.db\nSuccessfully connected to database\nSetting up volume profile database tables...\nVolume profile database tables setup complete\nStarting server on http://127.0.0.1:5173\n{\"timestamp\":\"2025-09-01T15:26:08.104738Z\",\"level\":\"ERROR\",\"fields\":{\"message\":\"response failed\",\"classification\":\"Status code: 500 Internal Server Error\",\"latency\":\"0 ms\"},\"target\":\"tower_http::trace::on_failure\"}\n{\"timestamp\":\"2025-09-01T15:26:13.632507Z\",\"level\":\"ERROR\",\"fields\":{\"message\":\"response failed\",\"classification\":\"Status code: 500 Internal Server Error\",\"latency\":\"0 ms\"},\"target\":\"tower_http::trace::on_failure\"}\n{\"timestamp\":\"2025-09-01T15:26:28.315931Z\",\"level\":\"ERROR\",\"fields\":{\"message\":\"response failed\",\"classification\":\"Status code: 500 Internal Server Error\",\"latency\":\"0 ms\"},\"target\":\"tower_http::trace::on_failure\"}\n^C%   "
+  ]
+}

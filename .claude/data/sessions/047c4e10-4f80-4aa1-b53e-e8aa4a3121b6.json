@@ -1,0 +1,6 @@
+{
+  "session_id": "047c4e10-4f80-4aa1-b53e-e8aa4a3121b6",
+  "prompts": [
+    "/main\u00a0for each step in @PLAN.md  could you call the correct agent to review the implementation i want you to give them a very concise general outline of the implementation plan and what we want to do and after tha feed them the whole corresponding step. i want you to create a new file NEW_PLAN.md with the results"
+  ]
+}

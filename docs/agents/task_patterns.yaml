@@ -1,0 +1,590 @@
+# Task Patterns for Common Modifications
+# This file provides step-by-step patterns for common development tasks in the Flowsurface codebase
+
+## GUI Component Development Patterns
+
+add_custom_widget:
+  description: "Add a new custom widget to the widget system"
+  complexity: "medium"
+  files_to_modify:
+    - src/widget/[widget_name].rs
+    - src/widget.rs
+    - src/screen/dashboard.rs (if dashboard integration needed)
+    - src/style.rs (if custom styling needed)
+  steps:
+    1: "Create widget module in src/widget/[widget_name].rs"
+    2: "Implement Iced Element trait and widget logic"
+    3: "Add widget to src/widget.rs module exports"
+    4: "Integrate widget in appropriate screen components"
+    5: "Add custom styling if needed in src/style.rs"
+    6: "Update message enum to handle widget events"
+    7: "Test widget functionality and styling"
+  validation:
+    - Widget compiles without errors
+    - Widget renders correctly in UI
+    - Widget events handle properly
+    - Styling applies consistently with theme
+    - Widget integrates smoothly with existing components
+  example_widgets:
+    - color_picker.rs (complex widget with HSV selection)
+    - multi_split.rs (layout management widget)
+    - toast.rs (notification display widget)
+
+add_modal_dialog:
+  description: "Add a new modal dialog to the modal system"
+  complexity: "medium"
+  files_to_modify:
+    - src/modal/[dialog_name].rs
+    - src/modal.rs
+    - src/main.rs (message enum update)
+    - src/screen/dashboard.rs (dialog trigger integration)
+  steps:
+    1: "Create dialog module in src/modal/[dialog_name].rs"
+    2: "Define dialog state structure and message enum"
+    3: "Implement dialog view function with Iced elements"
+    4: "Add dialog update logic for message handling"
+    5: "Export dialog from src/modal.rs"
+    6: "Add dialog to main message enum in src/main.rs"
+    7: "Integrate dialog trigger in appropriate UI components"
+    8: "Add dialog state to main application state"
+    9: "Test dialog open/close and functionality"
+  validation:
+    - Dialog opens and closes correctly
+    - Dialog state manages properly
+    - Dialog integrates with application state
+    - Dialog styling matches theme
+    - Dialog doesn't break existing functionality
+  example_dialogs:
+    - theme_editor.rs (complex dialog with live preview)
+    - layout_manager.rs (layout management dialog)
+    - audio.rs (simple settings dialog)
+
+update_dashboard_layout:
+  description: "Modify the main dashboard layout structure"
+  complexity: "high"
+  files_to_modify:
+    - src/screen/dashboard.rs
+    - src/screen/dashboard/pane.rs
+    - src/layout.rs (if layout persistence changes)
+    - data/layout/dashboard.rs (if data structures change)
+  steps:
+    1: "Analyze current dashboard layout structure"
+    2: "Plan new layout requirements and constraints"
+    3: "Update dashboard.rs layout logic"
+    4: "Modify pane.rs if pane behavior changes"
+    5: "Update layout persistence if data structures change"
+    6: "Update layout.rs for any persistence changes"
+    7: "Test layout changes across different screen sizes"
+    8: "Verify layout persistence works correctly"
+  validation:
+    - Dashboard renders correctly on all screen sizes
+    - Layout changes don't break existing functionality
+    - Pane management continues to work
+    - Layout persistence functions properly
+    - Performance remains acceptable
+  integration_points:
+    - layout.rs (layout persistence)
+    - data/layout/ (layout data structures)
+    - modal/layout_manager.rs (layout management)
+
+## Chart System Development Patterns
+
+add_chart_type:
+  description: "Add a new chart type to the chart system"
+  complexity: "high"
+  files_to_modify:
+    - src/chart/[chart_name].rs
+    - src/chart.rs
+    - data/chart/[chart_name].rs
+    - src/screen/dashboard/pane.rs
+    - src/modal/pane/settings.rs (if chart needs settings)
+  steps:
+    1: "Define chart data structures in data/chart/[chart_name].rs"
+    2: "Implement data processing and aggregation logic"
+    3: "Create chart rendering module in src/chart/[chart_name].rs"
+    4: "Implement Iced Element trait for chart rendering"
+    5: "Add chart to src/chart.rs module exports"
+    6: "Integrate chart type selection in pane.rs"
+    7: "Add chart-specific settings if needed"
+    8: "Update message enum for chart-specific events"
+    9: "Test chart with live and historical data"
+  validation:
+    - Chart renders correctly with test data
+    - Real-time updates work smoothly
+    - Chart integrates with pane system
+    - Settings apply correctly if applicable
+    - Performance is acceptable with large datasets
+  example_charts:
+    - heatmap.rs (complex chart with volume profile)
+    - kline.rs (traditional candlestick chart)
+    - indicator/ (technical indicator overlays)
+
+add_technical_indicator:
+  description: "Add a new technical indicator to the indicator system"
+  complexity: "medium"
+  files_to_modify:
+    - data/chart/indicator.rs
+    - src/chart/indicator/[indicator_type].rs
+    - src/chart/indicator.rs
+    - src/modal/pane/indicators.rs
+  steps:
+    1: "Implement indicator calculation in data/chart/indicator.rs"
+    2: "Create indicator plotter in src/chart/indicator/[type].rs"
+    3: "Add indicator to available indicators list"
+    4: "Update indicator settings UI in modal/pane/indicators.rs"
+    5: "Add indicator to chart rendering pipeline"
+    6: "Test indicator calculation accuracy"
+    7: "Test indicator visual rendering"
+    8: "Verify indicator settings work correctly"
+  validation:
+    - Indicator calculations are mathematically correct
+    - Indicator renders visually as expected
+    - Indicator settings apply properly
+    - Indicator doesn't impact chart performance significantly
+    - Indicator integrates with existing indicator system
+  example_indicators:
+    - volume.rs (volume-based indicators)
+    - open_interest.rs (futures-specific indicators)
+    - line.rs (line-based plotting)
+    - bar.rs (bar-based plotting)
+
+update_chart_scaling:
+  description: "Modify chart scaling or coordinate systems"
+  complexity: "high"
+  files_to_modify:
+    - src/chart/scale/timeseries.rs
+    - src/chart/scale/linear.rs
+    - All chart implementations that use scaling
+  steps:
+    1: "Analyze current scaling implementation"
+    2: "Design new scaling algorithm or improvements"
+    3: "Update timeseries.rs for time-based scaling changes"
+    4: "Update linear.rs for price-based scaling changes"
+    5: "Update all chart types to use new scaling"
+    6: "Test scaling accuracy across different data ranges"
+    7: "Verify scaling performance is acceptable"
+    8: "Test scaling with zoom and pan operations"
+  validation:
+    - Scaling is mathematically accurate
+    - All chart types work with new scaling
+    - Zoom and pan operations work smoothly
+    - Scaling performance is acceptable
+    - Coordinate transformations are precise
+  critical_considerations:
+    - Scaling affects all chart rendering
+    - Changes impact real-time chart updates
+    - Performance critical for smooth user experience
+    - Must maintain precision with financial data
+
+## Exchange Integration Patterns
+
+add_exchange_adapter:
+  description: "Add support for a new cryptocurrency exchange"
+  complexity: "high"
+  files_to_modify:
+    - exchange/adapter/[exchange_name].rs
+    - exchange/adapter.rs
+    - exchange/lib.rs
+    - src/screen/dashboard/sidebar.rs (exchange selection)
+    - data/config/sidebar.rs (if exchange-specific config needed)
+  steps:
+    1: "Create exchange adapter in exchange/adapter/[exchange].rs"
+    2: "Implement common exchange traits (Connection, DataFetcher, etc.)"
+    3: "Add WebSocket connection logic with auto-reconnection"
+    4: "Implement rate limiting specific to exchange"
+    5: "Add REST API integration for historical data"
+    6: "Add exchange to adapter.rs and lib.rs exports"
+    7: "Update sidebar.rs for exchange selection UI"
+    8: "Add exchange-specific configuration if needed"
+    9: "Test WebSocket stability and data accuracy"
+  validation:
+    - WebSocket connections establish reliably
+    - Auto-reconnection works during network issues
+    - Rate limiting prevents API violations
+    - Historical data fetches correctly
+    - Real-time data updates work smoothly
+    - Exchange-specific features function properly
+  example_adapters:
+    - binance.rs (comprehensive futures and spot support)
+    - bybit.rs (derivatives market integration)
+    - hyperliquid.rs (perpetuals with custom data formats)
+
+update_websocket_handling:
+  description: "Improve WebSocket connection management or data processing"
+  complexity: "medium"
+  files_to_modify:
+    - exchange/connect.rs
+    - exchange/adapter/[specific_exchange].rs
+    - exchange/limiter.rs (if rate limiting changes)
+  steps:
+    1: "Analyze current WebSocket implementation"
+    2: "Identify improvement areas (reconnection, error handling, etc.)"
+    3: "Update connect.rs for connection management changes"
+    4: "Update specific exchange adapters as needed"
+    5: "Improve error handling and recovery logic"
+    6: "Update rate limiting if connection behavior changes"
+    7: "Test connection stability under various network conditions"
+    8: "Test error recovery and reconnection logic"
+  validation:
+    - WebSocket connections remain stable
+    - Error handling works correctly
+    - Reconnection logic functions as expected
+    - Data processing continues smoothly
+    - Rate limiting continues to work
+    - No data loss during connection issues
+  critical_considerations:
+    - WebSocket stability is crucial for real-time data
+    - Error recovery must be robust
+    - Rate limiting must be maintained
+    - Data integrity must be preserved
+
+add_historical_data_source:
+  description: "Add support for fetching historical data from new sources"
+  complexity: "medium"
+  files_to_modify:
+    - exchange/fetcher.rs
+    - exchange/adapter/[exchange_name].rs
+    - src/modal/pane/settings.rs (if settings UI needed)
+    - data/chart/ (if new data formats needed)
+  steps:
+    1: "Analyze new historical data source API"
+    2: "Update fetcher.rs with new data source logic"
+    3: "Update exchange adapter with source-specific code"
+    4: "Add data format handling if formats differ"
+    5: "Update settings UI if user configuration needed"
+    6: "Implement data validation for new source"
+    7: "Add caching logic for historical data"
+    8: "Test data fetching accuracy and performance"
+  validation:
+    - Historical data fetches correctly
+    - Data format parsing works accurately
+    - Settings UI functions properly if added
+    - Data validation prevents corrupted data
+    - Caching improves performance
+    - Integration with existing charts works
+  example_sources:
+    - Binance data.binance.vision (bulk daily downloads)
+    - Exchange REST APIs (paginated intraday data)
+    - Third-party data providers
+
+## Data Management Patterns
+
+update_configuration_system:
+  description: "Add new configuration options or modify existing ones"
+  complexity: "medium"
+  files_to_modify:
+    - data/config/[config_area].rs
+    - data/config/state.rs
+    - src/modal/[related_settings].rs
+    - saved-state.json (data format impact)
+  steps:
+    1: "Define new configuration data structures"
+    2: "Update relevant config module with new options"
+    3: "Update state.rs for serialization integration"
+    4: "Add configuration UI in appropriate modal"
+    5: "Add default values for new configuration"
+    6: "Test configuration saving and loading"
+    7: "Test configuration migration if data format changes"
+    8: "Verify configuration applies correctly in application"
+  validation:
+    - New configuration options save and load correctly
+    - Default values are appropriate
+    - Configuration UI functions properly
+    - Migration works for existing configurations
+    - Configuration changes apply immediately where expected
+  example_configurations:
+    - theme.rs (theme and color configuration)
+    - sidebar.rs (sidebar layout and preferences)
+    - timezone.rs (market session and time display)
+
+add_data_persistence:
+  description: "Add persistence for new data types or improve existing persistence"
+  complexity: "medium"
+  files_to_modify:
+    - data/config/state.rs
+    - data/[data_area].rs
+    - src/main.rs (if application state changes)
+    - saved-state.json (data format impact)
+  steps:
+    1: "Define data structures for persistence"
+    2: "Add serialization/deserialization logic"
+    3: "Update state.rs to include new data"
+    4: "Add data loading/saving logic"
+    5: "Add data validation and error handling"
+    6: "Test data persistence across application restarts"
+    7: "Test data migration if format changes"
+    8: "Verify data integrity and validation"
+  validation:
+    - Data saves correctly to JSON format
+    - Data loads correctly on application start
+    - Data validation prevents corruption
+    - Migration works for existing data
+    - Performance impact is minimal
+  critical_considerations:
+    - JSON format must remain readable
+    - Data validation prevents application crashes
+    - Migration preserves user data
+    - Performance impact should be minimal
+
+improve_data_aggregation:
+  description: "Enhance data aggregation algorithms or add new aggregation types"
+  complexity: "high"
+  files_to_modify:
+    - data/aggr/time.rs
+    - data/aggr/ticks.rs
+    - data/chart/[relevant_chart].rs
+    - src/chart/[relevant_chart].rs (if rendering changes)
+  steps:
+    1: "Analyze current aggregation implementation"
+    2: "Design improved aggregation algorithm"
+    3: "Update time.rs for time-based aggregation changes"
+    4: "Update ticks.rs for volume-based aggregation changes"
+    5: "Update chart data processing to use new aggregation"
+    6: "Update chart rendering if data format changes"
+    7: "Test aggregation accuracy with various data sets"
+    8: "Test aggregation performance with large data sets"
+  validation:
+    - Aggregation algorithms are mathematically correct
+    - Aggregation results match expected values
+    - Performance is acceptable with large datasets
+    - Chart rendering works with new aggregation
+    - Real-time aggregation updates smoothly
+  example_aggregations:
+    - Time-based intervals (1m, 5m, 1h, 1d)
+    - Volume-based intervals (1000 shares, 10000 shares)
+    - Tick-based intervals (100 ticks, 1000 ticks)
+
+## Theme and Styling Patterns
+
+update_theme_system:
+  description: "Add new theme properties or modify existing theme behavior"
+  complexity: "medium" 
+  files_to_modify:
+    - src/style.rs
+    - data/config/theme.rs
+    - src/modal/theme_editor.rs
+    - All components using themed colors
+  steps:
+    1: "Define new theme properties in data/config/theme.rs"
+    2: "Add theme property application logic in src/style.rs"
+    3: "Update theme editor to include new properties"
+    4: "Update components to use new theme properties"
+    5: "Add default values for new theme properties"
+    6: "Test theme changes apply correctly"
+    7: "Test theme persistence works"
+    8: "Verify all components respect new theme properties"
+  validation:
+    - New theme properties apply correctly across all components
+    - Theme editor allows modification of new properties
+    - Theme changes save and load properly
+    - Default theme values are appropriate
+    - No components break with theme changes
+  example_properties:
+    - Chart-specific colors (candlestick colors, volume colors)
+    - UI element colors (button colors, text colors)
+    - Background and surface colors
+    - Accent and highlight colors
+
+add_custom_styling:
+  description: "Add custom styling for specific components or features"
+  complexity: "low"
+  files_to_modify:
+    - src/style.rs
+    - Specific component files that need styling
+  steps:
+    1: "Define styling requirements for component"
+    2: "Add custom style functions in src/style.rs"
+    3: "Apply custom styling in component implementation"
+    4: "Test styling appearance and behavior"
+    5: "Test styling with different themes"
+    6: "Verify styling doesn't conflict with existing styles"
+  validation:
+    - Custom styling renders correctly
+    - Styling works with all themes
+    - Styling doesn't break existing appearance
+    - Styling is consistent with design system
+  example_styling:
+    - Button hover effects and states
+    - Input field styling and focus states
+    - Chart-specific visual elements
+    - Modal dialog styling and animations
+
+## Performance Optimization Patterns
+
+optimize_chart_rendering:
+  description: "Improve chart rendering performance for large datasets"
+  complexity: "high"
+  files_to_modify:
+    - src/chart/[chart_type].rs
+    - data/chart/[chart_type].rs
+    - src/chart/scale/ (if coordinate calculations impact performance)
+  steps:
+    1: "Profile current chart rendering performance"
+    2: "Identify performance bottlenecks"
+    3: "Optimize data processing algorithms"
+    4: "Optimize rendering logic and draw calls"
+    5: "Implement data culling for off-screen elements"
+    6: "Add rendering caching where appropriate"
+    7: "Test performance improvements with large datasets"
+    8: "Verify rendering accuracy is maintained"
+  validation:
+    - Chart rendering performance improves measurably
+    - Rendering accuracy is maintained
+    - Memory usage doesn't increase significantly
+    - Real-time updates remain smooth
+    - Large dataset handling improves
+  optimization_techniques:
+    - Data culling (only render visible elements)
+    - Rendering caching (cache expensive calculations)
+    - Batch rendering operations
+    - Optimize coordinate transformations
+    - Reduce memory allocations
+
+optimize_data_processing:
+  description: "Improve data processing performance for real-time updates"
+  complexity: "high"
+  files_to_modify:
+    - data/aggr/
+    - data/chart/
+    - exchange/ (if data processing happens at exchange level)
+  steps:
+    1: "Profile current data processing performance"
+    2: "Identify processing bottlenecks"
+    3: "Optimize aggregation algorithms"
+    4: "Optimize data structure usage"
+    5: "Reduce memory allocations"
+    6: "Add data processing caching"
+    7: "Test processing improvements with high-frequency data"
+    8: "Verify data accuracy is maintained"
+  validation:
+    - Data processing performance improves measurably
+    - Data accuracy is maintained
+    - Memory usage is optimized
+    - Real-time processing keeps up with data streams
+    - CPU usage is reduced
+  optimization_techniques:
+    - Use more efficient data structures
+    - Reduce memory allocations and copying
+    - Cache expensive calculations
+    - Optimize aggregation algorithms
+    - Use SIMD operations where applicable
+
+reduce_memory_usage:
+  description: "Optimize memory usage across the application"
+  complexity: "medium"
+  files_to_modify:
+    - data/ (data structure optimizations)
+    - src/chart/ (rendering optimizations)
+    - exchange/ (connection and data handling)
+  steps:
+    1: "Profile current memory usage patterns"
+    2: "Identify memory usage hotspots"
+    3: "Optimize data structures for memory efficiency"
+    4: "Implement data cleanup and garbage collection"
+    5: "Reduce data copying and cloning"
+    6: "Add memory usage monitoring"
+    7: "Test memory usage improvements"
+    8: "Verify functionality is maintained"
+  validation:
+    - Memory usage is reduced measurably
+    - Memory usage remains stable over time
+    - No memory leaks are introduced
+    - Application functionality is maintained
+    - Performance is not negatively impacted
+  optimization_techniques:
+    - Use more compact data structures
+    - Implement data cleanup and expiration
+    - Reduce data copying and cloning
+    - Use memory pooling where appropriate
+    - Profile and monitor memory usage
+
+## Testing and Validation Patterns
+
+add_unit_tests:
+  description: "Add comprehensive unit tests for new or existing functionality"
+  complexity: "low"
+  files_to_modify:
+    - tests/ (new test files)
+    - Existing source files (add #[cfg(test)] modules)
+  steps:
+    1: "Identify functionality that needs testing"
+    2: "Create test modules in appropriate locations"
+    3: "Write unit tests for core functionality"
+    4: "Write unit tests for edge cases"
+    5: "Write unit tests for error handling"
+    6: "Add integration tests if needed"
+    7: "Run tests and ensure they pass"
+    8: "Add tests to CI/CD pipeline"
+  validation:
+    - All tests pass consistently
+    - Test coverage is comprehensive
+    - Edge cases are covered
+    - Error handling is tested
+    - Tests run in CI/CD pipeline
+  test_categories:
+    - Data processing accuracy
+    - Chart rendering correctness
+    - Exchange adapter functionality
+    - Configuration saving/loading
+    - Theme system behavior
+
+add_integration_tests:
+  description: "Add integration tests for complex workflows"
+  complexity: "medium"
+  files_to_modify:
+    - tests/ (new integration test files)
+    - Test fixtures and mock data
+  steps:
+    1: "Identify integration scenarios to test"
+    2: "Create test fixtures and mock data"
+    3: "Write integration tests for full workflows"
+    4: "Test error handling in integration scenarios"
+    5: "Add performance testing for integration scenarios"
+    6: "Run integration tests and ensure they pass"
+    7: "Add integration tests to CI/CD pipeline"
+    8: "Document integration test scenarios"
+  validation:
+    - Integration tests pass consistently
+    - Full workflows are tested end-to-end
+    - Error scenarios are covered
+    - Performance is validated
+    - Tests are maintainable and documented
+  integration_scenarios:
+    - Complete trading workflow
+    - Exchange connection and data flow
+    - Theme changes and persistence
+    - Layout management and persistence
+    - Chart updates and real-time data
+
+## Common Validation Criteria
+
+build_validation:
+  - "cargo build succeeds without errors"
+  - "cargo build --release succeeds without errors"
+  - "cargo clippy passes without warnings"
+  - "cargo fmt results in no changes"
+  - "cargo test passes all tests"
+
+functionality_validation:
+  - "Application launches successfully"
+  - "All UI components render correctly"
+  - "Real-time data updates work smoothly"
+  - "Configuration saves and loads properly"
+  - "Theme changes apply correctly"
+  - "Layout management functions properly"
+  - "Exchange connections remain stable"
+
+performance_validation:
+  - "Application startup time is reasonable"
+  - "Chart rendering is smooth with large datasets"
+  - "Memory usage remains stable over time"
+  - "CPU usage is reasonable during normal operation"
+  - "Real-time updates don't cause lag or stuttering"
+
+cross_platform_validation:
+  - "Application builds on all target platforms"
+  - "UI renders correctly on all platforms"
+  - "File paths work correctly cross-platform"
+  - "Platform-specific features function properly"
+
+This comprehensive task pattern library enables agents to follow established patterns for common development tasks, ensuring consistent implementation approaches and thorough validation procedures.

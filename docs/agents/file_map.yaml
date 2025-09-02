@@ -1,0 +1,943 @@
+# File-to-Purpose Mapping for Agent Operations
+# This file provides comprehensive mapping of all major files and their purposes for autonomous agent operations
+
+## Main Application Layer (src/)
+
+### Core Application Files
+src/main.rs:
+  purpose: "Application entry point with Iced daemon setup"
+  responsibilities:
+    - Logger initialization
+    - Font loading (AzeretMono, Icons)
+    - Iced daemon configuration
+    - Window management setup
+    - Market data cleanup thread spawning
+  modify_for:
+    - Application-wide settings changes
+    - Font additions or modifications
+    - Daemon behavior changes
+    - Global initialization logic
+  integration_points:
+    - window.rs (window management)
+    - logger.rs (logging system)
+    - style.rs (fonts and theming)
+  validation_tests:
+    - Application launches successfully
+    - All fonts load correctly
+    - Logger initializes without errors
+
+src/window.rs:
+  purpose: "Multi-window management and popout support"
+  responsibilities:
+    - Window creation and destruction
+    - Multi-monitor support
+    - Popout panel management
+    - Window state persistence
+  modify_for:
+    - New window types or layouts
+    - Multi-monitor features
+    - Window decoration changes
+    - Popout behavior modifications
+  integration_points:
+    - main.rs (daemon integration)
+    - screen/dashboard.rs (main content)
+    - layout.rs (layout persistence)
+  validation_tests:
+    - Windows create and close properly
+    - Popout functionality works
+    - Multi-monitor support functions
+    - Window state persists correctly
+
+### GUI System Files
+
+src/screen/dashboard.rs:
+  purpose: "Main dashboard layout coordination and pane management"
+  responsibilities:
+    - Overall dashboard layout structure
+    - Pane grid management
+    - Sidebar integration
+    - Modal dialog coordination
+  modify_for:
+    - Dashboard layout changes
+    - New pane types
+    - Sidebar behavior modifications
+    - Modal integration updates
+  integration_points:
+    - dashboard/pane.rs (individual panes)
+    - dashboard/sidebar.rs (sidebar content)
+    - modal/ (dialog system)
+    - layout.rs (layout persistence)
+  validation_tests:
+    - Dashboard renders correctly
+    - Panes create and resize properly
+    - Sidebar integration works
+    - Modal dialogs display correctly
+
+src/screen/dashboard/pane.rs:
+  purpose: "Individual pane content management and chart display"
+  responsibilities:
+    - Chart rendering coordination
+    - Pane-specific settings
+    - Chart type switching
+    - Data binding to charts
+  modify_for:
+    - New chart types
+    - Chart-specific features
+    - Pane behavior changes
+    - Data visualization improvements
+  integration_points:
+    - chart/ (chart implementations)
+    - modal/pane/ (pane settings)
+    - data/chart/ (chart data)
+  validation_tests:
+    - All chart types render correctly
+    - Pane settings apply properly
+    - Data updates reflect in charts
+    - Chart switching works smoothly
+
+src/screen/dashboard/sidebar.rs:
+  purpose: "Ticker selection interface and application controls"
+  responsibilities:
+    - Ticker search and filtering
+    - Exchange selection
+    - Favorite tickers management
+    - Application settings access
+  modify_for:
+    - New exchange integrations
+    - Ticker search improvements
+    - Sidebar layout changes
+    - Settings reorganization
+  integration_points:
+    - exchange/ (ticker data)
+    - data/config/sidebar.rs (sidebar state)
+    - dashboard/tickers_table.rs (ticker table)
+  validation_tests:
+    - Ticker search functions correctly
+    - Exchange filtering works
+    - Favorites save and load
+    - Settings access functions
+
+src/screen/dashboard/tickers_table.rs:
+  purpose: "Sortable and filterable ticker table implementation"
+  responsibilities:
+    - Ticker data display
+    - Column sorting and filtering
+    - Table state persistence
+    - Ticker selection handling
+  modify_for:
+    - New ticker data columns
+    - Sorting/filtering improvements
+    - Table behavior changes
+    - Performance optimizations
+  integration_points:
+    - data/tickers_table.rs (table data structures)
+    - exchange/adapter/ (ticker data sources)
+    - data/config/sidebar.rs (table state persistence)
+  validation_tests:
+    - Table sorts correctly on all columns
+    - Filtering works as expected
+    - State persists between sessions
+    - Performance remains smooth with large datasets
+
+### Modal System Files
+
+src/modal/theme_editor.rs:
+  purpose: "Runtime theme customization with live preview"
+  responsibilities:
+    - Color palette editing
+    - Theme property modification
+    - Live preview updates
+    - Theme export/import
+  modify_for:
+    - New theme properties
+    - Color picker improvements
+    - Theme management features
+    - Visual customization options
+  integration_points:
+    - style.rs (theme application)
+    - data/config/theme.rs (theme persistence)
+    - widget/color_picker.rs (color selection)
+  validation_tests:
+    - Theme changes apply immediately
+    - Color picker functions correctly
+    - Themes save and load properly
+    - All UI elements respect theme changes
+
+src/modal/layout_manager.rs:
+  purpose: "Layout creation, modification, and management"
+  responsibilities:
+    - Layout template management
+    - Pane arrangement tools
+    - Layout saving/loading
+    - Layout sharing features
+  modify_for:
+    - New layout templates
+    - Layout management features
+    - Import/export functionality
+    - Layout validation improvements
+  integration_points:
+    - data/layout/ (layout data structures)
+    - screen/dashboard.rs (layout application)
+    - layout.rs (layout persistence)
+  validation_tests:
+    - Layouts save and load correctly
+    - Layout modifications apply properly
+    - Template system works
+    - Layout validation prevents errors
+
+src/modal/pane/:
+  purpose: "Pane-specific settings and configuration dialogs"
+  components:
+    - indicators.rs: Technical indicator configuration
+    - settings.rs: Chart and pane settings
+    - stream.rs: Data stream configuration
+  modify_for:
+    - New pane types
+    - Additional settings options
+    - Configuration improvements
+    - Settings validation
+  integration_points:
+    - chart/ (chart configurations)
+    - exchange/ (data stream settings)
+    - data/config/ (settings persistence)
+  validation_tests:
+    - Settings save and apply correctly
+    - All configuration options work
+    - Validation prevents invalid settings
+    - Settings persist between sessions
+
+### Custom Widget System
+
+src/widget/color_picker.rs:
+  purpose: "HSV color picker with palette support"
+  responsibilities:
+    - Color space conversions
+    - Visual color selection interface
+    - Palette management
+    - Color format support
+  modify_for:
+    - New color spaces
+    - Palette improvements
+    - Color picker UI enhancements
+    - Color format additions
+  integration_points:
+    - modal/theme_editor.rs (theme editing)
+    - style.rs (color application)
+    - data/config/theme.rs (color persistence)
+  validation_tests:
+    - Color selection works accurately
+    - Color space conversions are correct
+    - Palettes save and load properly
+    - All color formats display correctly
+
+src/widget/multi_split.rs:
+  purpose: "Dynamic pane splitting and resizing widget"
+  responsibilities:
+    - Pane boundary management
+    - Drag-and-drop resizing
+    - Split orientation handling
+    - Layout constraint enforcement
+  modify_for:
+    - New split behaviors
+    - Resizing improvements
+    - Layout constraints
+    - Visual feedback enhancements
+  integration_points:
+    - screen/dashboard.rs (dashboard layout)
+    - layout.rs (layout persistence)
+    - data/layout/pane.rs (pane data structures)
+  validation_tests:
+    - Pane splitting works smoothly
+    - Resizing respects constraints
+    - Layout state persists correctly
+    - Visual feedback is appropriate
+
+src/widget/toast.rs:
+  purpose: "Non-blocking notification system"
+  responsibilities:
+    - Notification display management
+    - Auto-dismiss functionality
+    - Notification queuing
+    - Visual styling
+  modify_for:
+    - New notification types
+    - Display improvements
+    - Interaction features
+    - Styling enhancements
+  integration_points:
+    - main.rs (global notification access)
+    - All modules (notification sources)
+    - style.rs (notification theming)
+  validation_tests:
+    - Notifications display correctly
+    - Auto-dismiss timing works
+    - Queue management functions
+    - Styling applies properly
+
+### Chart System Files
+
+src/chart/heatmap.rs:
+  purpose: "Historical DOM visualization with volume profile"
+  responsibilities:
+    - Heat map data rendering
+    - Volume profile calculation
+    - Price level aggregation
+    - Time-based heat map updates
+  modify_for:
+    - Heat map algorithm improvements
+    - Volume profile enhancements
+    - Visualization options
+    - Performance optimizations
+  integration_points:
+    - data/chart/heatmap.rs (heat map data processing)
+    - data/aggr/ (data aggregation)
+    - exchange/ (market data sources)
+  validation_tests:
+    - Heat maps render accurately
+    - Volume profiles calculate correctly
+    - Real-time updates work smoothly
+    - Performance remains good with large datasets
+
+src/chart/kline.rs:
+  purpose: "Traditional candlestick chart implementation"
+  responsibilities:
+    - Candlestick rendering
+    - OHLCV data display
+    - Custom interval support
+    - Chart scaling and navigation
+  modify_for:
+    - New candlestick styles
+    - Interval improvements
+    - Navigation enhancements
+    - Scaling optimizations
+  integration_points:
+    - data/chart/kline.rs (candlestick data)
+    - chart/scale/ (coordinate systems)
+    - data/aggr/time.rs (time-based aggregation)
+  validation_tests:
+    - Candlesticks render correctly
+    - All intervals work properly
+    - Scaling functions accurately
+    - Navigation is smooth
+
+src/chart/indicator/:
+  purpose: "Technical indicator system with extensible plotters"
+  components:
+    - plot.rs: Base plotting system
+    - plot/line.rs: Line-based indicators
+    - plot/bar.rs: Bar-based indicators
+    - kline/: Candlestick-specific indicators
+  modify_for:
+    - New indicator types
+    - Plotting improvements
+    - Performance optimizations
+    - Visual enhancements
+  integration_points:
+    - data/chart/indicator.rs (indicator calculations)
+    - modal/pane/indicators.rs (indicator settings)
+    - chart/scale/ (coordinate systems)
+  validation_tests:
+    - All indicators calculate correctly
+    - Plotting renders accurately
+    - Settings apply properly
+    - Performance is acceptable
+
+src/chart/scale/:
+  purpose: "Coordinate transformation and scaling systems"
+  components:
+    - timeseries.rs: Time-based coordinate transformation
+    - linear.rs: Price-based coordinate transformation
+  modify_for:
+    - New scaling algorithms
+    - Coordinate system improvements
+    - Performance optimizations
+    - Precision enhancements
+  integration_points:
+    - All chart types (coordinate mapping)
+    - widget/multi_split.rs (layout scaling)
+    - screen/dashboard/pane.rs (chart rendering)
+  validation_tests:
+    - Coordinate transformations are accurate
+    - Scaling works across all chart types
+    - Performance is optimal
+    - Precision is maintained
+
+## Data Management Layer (data/)
+
+### Configuration System
+
+data/config/theme.rs:
+  purpose: "Theme system with custom palette support and persistence"
+  responsibilities:
+    - Theme data structures
+    - Color palette management
+    - Theme serialization/deserialization
+    - Default theme definitions
+  modify_for:
+    - New theme properties
+    - Palette management improvements
+    - Theme format changes
+    - Default theme updates
+  integration_points:
+    - src/style.rs (theme application)
+    - src/modal/theme_editor.rs (theme editing)
+    - saved-state.json (persistence)
+  validation_tests:
+    - Themes save and load correctly
+    - All theme properties apply
+    - Palette management works
+    - Default themes are valid
+
+data/config/sidebar.rs:
+  purpose: "Sidebar state and ticker preferences management"
+  responsibilities:
+    - Sidebar layout state
+    - Ticker filter preferences
+    - Exchange selection state
+    - Search history management
+  modify_for:
+    - New sidebar features
+    - Filter improvements
+    - State management changes
+    - Search enhancements
+  integration_points:
+    - src/screen/dashboard/sidebar.rs (sidebar UI)
+    - src/screen/dashboard/tickers_table.rs (table state)
+    - saved-state.json (persistence)
+  validation_tests:
+    - Sidebar state persists correctly
+    - Filter preferences work
+    - Exchange selection saves
+    - Search history functions
+
+data/config/state.rs:
+  purpose: "Application state serialization and persistence coordination"
+  responsibilities:
+    - State data structure definitions
+    - Serialization/deserialization logic
+    - State validation and migration
+    - Configuration file management
+  modify_for:
+    - New state properties
+    - State format changes
+    - Migration logic updates
+    - Validation improvements
+  integration_points:
+    - All config modules (state components)
+    - src/main.rs (state loading/saving)
+    - saved-state.json (persistence file)
+  validation_tests:
+    - State saves and loads correctly
+    - Migration logic works
+    - Validation prevents corruption
+    - All state components integrate properly
+
+data/config/timezone.rs:
+  purpose: "Timezone handling and market session management"
+  responsibilities:
+    - Timezone conversion logic
+    - Market session definitions
+    - Time display formatting
+    - Timezone persistence
+  modify_for:
+    - New market sessions
+    - Timezone improvements
+    - Display format changes
+    - Session handling updates
+  integration_points:
+    - src/chart/ (time axis display)
+    - data/chart/ (time-based data processing)
+    - data/aggr/time.rs (time aggregation)
+  validation_tests:
+    - Timezone conversions are accurate
+    - Market sessions display correctly
+    - Time formatting works properly
+    - Persistence functions correctly
+
+### Chart Data Processing
+
+data/chart/heatmap.rs:
+  purpose: "Heat map data aggregation and processing"
+  responsibilities:
+    - Trade data aggregation
+    - Heat intensity calculations
+    - Volume profile generation
+    - Price level grouping
+  modify_for:
+    - Aggregation algorithm improvements
+    - Heat calculation changes
+    - Volume profile enhancements
+    - Price grouping optimizations
+  integration_points:
+    - src/chart/heatmap.rs (heat map rendering)
+    - exchange/ (trade data sources)
+    - data/aggr/ (data aggregation)
+  validation_tests:
+    - Heat map data calculates correctly
+    - Volume profiles are accurate
+    - Price grouping works properly
+    - Performance is acceptable
+
+data/chart/kline.rs:
+  purpose: "OHLCV data processing and candlestick formation"
+  responsibilities:
+    - OHLCV calculation from trades
+    - Candlestick data structures
+    - Time interval processing
+    - Data validation and cleaning
+  modify_for:
+    - OHLCV calculation improvements
+    - New interval types
+    - Data validation enhancements
+    - Performance optimizations
+  integration_points:
+    - src/chart/kline.rs (candlestick rendering)
+    - data/aggr/time.rs (time aggregation)
+    - exchange/ (trade and kline data)
+  validation_tests:
+    - OHLCV calculations are accurate
+    - Candlestick data is valid
+    - All intervals process correctly
+    - Data validation works
+
+data/chart/indicator.rs:
+  purpose: "Technical indicator calculations and caching"
+  responsibilities:
+    - Indicator algorithm implementations
+    - Calculation result caching
+    - Parameter validation
+    - Performance optimization
+  modify_for:
+    - New indicator algorithms
+    - Calculation improvements
+    - Caching optimizations
+    - Parameter validation updates
+  integration_points:
+    - src/chart/indicator/ (indicator plotting)
+    - src/modal/pane/indicators.rs (indicator settings)
+    - data/chart/kline.rs (source data)
+  validation_tests:
+    - All indicator calculations are correct
+    - Caching improves performance
+    - Parameters validate properly
+    - Results match expected values
+
+data/chart/timeandsales.rs:
+  purpose: "Trade stream processing and filtering"
+  responsibilities:
+    - Trade data filtering
+    - Stream processing logic
+    - Trade aggregation
+    - Performance optimization
+  modify_for:
+    - Filtering improvements
+    - Stream processing enhancements
+    - Aggregation algorithm changes
+    - Performance optimizations
+  integration_points:
+    - src/screen/dashboard/panel/timeandsales.rs (trade display)
+    - exchange/ (trade data sources)
+    - data/aggr/ticks.rs (tick aggregation)
+  validation_tests:
+    - Trade filtering works correctly
+    - Stream processing is efficient
+    - Aggregation is accurate
+    - Performance is acceptable
+
+### Data Aggregation System
+
+data/aggr/time.rs:
+  purpose: "Time-based data aggregation (1m, 5m, 1h intervals)"
+  responsibilities:
+    - Time interval calculations
+    - Data bucketing logic
+    - Aggregation algorithms
+    - Performance optimization
+  modify_for:
+    - New time intervals
+    - Aggregation improvements
+    - Bucketing optimizations
+    - Algorithm enhancements
+  integration_points:
+    - data/chart/ (chart data processing)
+    - src/chart/ (chart rendering)
+    - exchange/ (raw data sources)
+  validation_tests:
+    - All time intervals aggregate correctly
+    - Bucketing logic is accurate
+    - Performance is optimal
+    - Results are consistent
+
+data/aggr/ticks.rs:
+  purpose: "Tick-based data aggregation for volume intervals"
+  responsibilities:
+    - Volume-based bucketing
+    - Tick counting logic
+    - Dynamic interval handling
+    - Performance optimization
+  modify_for:
+    - Volume aggregation improvements
+    - Tick counting enhancements
+    - Dynamic interval features
+    - Performance optimizations
+  integration_points:
+    - data/chart/timeandsales.rs (tick processing)
+    - src/chart/ (chart rendering)
+    - exchange/ (tick data sources)
+  validation_tests:
+    - Volume aggregation is accurate
+    - Tick counting works correctly
+    - Dynamic intervals function properly
+    - Performance is acceptable
+
+### Layout and Persistence
+
+data/layout/dashboard.rs:
+  purpose: "Dashboard layout data structures and persistence"
+  responsibilities:
+    - Layout data models
+    - Serialization logic
+    - Layout validation
+    - Migration handling
+  modify_for:
+    - New layout features
+    - Data structure changes
+    - Validation improvements
+    - Migration updates
+  integration_points:
+    - src/screen/dashboard.rs (layout application)
+    - src/modal/layout_manager.rs (layout management)
+    - data/layout/pane.rs (pane structures)
+  validation_tests:
+    - Layout data serializes correctly
+    - Validation prevents invalid layouts
+    - Migration works properly
+    - Layout application functions
+
+data/layout/pane.rs:
+  purpose: "Individual pane configuration and state management"
+  responsibilities:
+    - Pane data structures
+    - Configuration persistence
+    - State validation
+    - Default configurations
+  modify_for:
+    - New pane types
+    - Configuration options
+    - State management improvements
+    - Default value updates
+  integration_points:
+    - src/screen/dashboard/pane.rs (pane rendering)
+    - src/modal/pane/ (pane settings)
+    - data/layout/dashboard.rs (layout integration)
+  validation_tests:
+    - Pane configurations save correctly
+    - State validation works
+    - Default configurations are valid
+    - Integration functions properly
+
+### Utility Systems
+
+data/audio.rs:
+  purpose: "Audio system for trade notifications and sound effects"
+  responsibilities:
+    - Audio file management
+    - Sound effect playback
+    - Volume control
+    - Audio device handling
+  modify_for:
+    - New sound effects
+    - Audio format support
+    - Playback improvements
+    - Device management features
+  integration_points:
+    - src/modal/audio.rs (audio settings)
+    - exchange/ (trade event triggers)
+    - assets/sounds/ (audio files)
+  validation_tests:
+    - Audio files play correctly
+    - Volume control works
+    - Device handling functions
+    - Sound effects trigger properly
+
+data/util.rs:
+  purpose: "Utility functions for data processing and file operations"
+  responsibilities:
+    - Data transformation utilities
+    - File system operations
+    - Cross-platform path handling
+    - Performance utilities
+  modify_for:
+    - New utility functions
+    - File operation improvements
+    - Path handling updates
+    - Performance optimizations
+  integration_points:
+    - All data modules (utility usage)
+    - File system operations throughout application
+    - Cross-platform compatibility
+  validation_tests:
+    - All utilities function correctly
+    - File operations work cross-platform
+    - Path handling is accurate
+    - Performance is optimal
+
+## Exchange Integration Layer (exchange/)
+
+### Exchange Adapters
+
+exchange/adapter/binance.rs:
+  purpose: "Binance exchange WebSocket and REST API integration"
+  responsibilities:
+    - Binance API implementation
+    - WebSocket stream management
+    - Historical data fetching
+    - Rate limiting compliance
+  modify_for:
+    - New Binance endpoints
+    - API changes adaptation
+    - Feature additions
+    - Performance improvements
+  integration_points:
+    - exchange/connect.rs (connection management)
+    - exchange/fetcher.rs (data fetching)
+    - exchange/limiter.rs (rate limiting)
+  validation_tests:
+    - WebSocket connections stable
+    - API responses parse correctly
+    - Rate limits respected
+    - Historical data fetches properly
+
+exchange/adapter/bybit.rs:
+  purpose: "Bybit exchange WebSocket and REST API integration"
+  responsibilities:
+    - Bybit API implementation
+    - WebSocket stream management
+    - Market data processing
+    - Error handling
+  modify_for:
+    - New Bybit endpoints
+    - API changes adaptation
+    - Feature additions
+    - Error handling improvements
+  integration_points:
+    - exchange/connect.rs (connection management)
+    - exchange/adapter.rs (common interface)
+    - data/chart/ (data processing)
+  validation_tests:
+    - WebSocket connections stable
+    - Market data processes correctly
+    - Error handling works properly
+    - API integration functions
+
+exchange/adapter/hyperliquid.rs:
+  purpose: "Hyperliquid exchange WebSocket and REST API integration"
+  responsibilities:
+    - Hyperliquid API implementation
+    - Perpetuals data handling
+    - WebSocket stream management
+    - Custom data formats
+  modify_for:
+    - New Hyperliquid features
+    - Data format changes
+    - API improvements
+    - Feature enhancements
+  integration_points:
+    - exchange/connect.rs (connection management)
+    - exchange/adapter.rs (common interface)
+    - data/ (data processing)
+  validation_tests:
+    - WebSocket connections stable
+    - Perpetuals data accurate
+    - Custom formats parse correctly
+    - API integration works
+
+### Connection and Data Management
+
+exchange/connect.rs:
+  purpose: "WebSocket connection management with auto-reconnection"
+  responsibilities:
+    - Connection establishment
+    - Auto-reconnection logic
+    - Connection health monitoring
+    - Error recovery
+  modify_for:
+    - Connection improvements
+    - Reconnection algorithm changes
+    - Health monitoring enhancements
+    - Error recovery improvements
+  integration_points:
+    - exchange/adapter/ (all exchange adapters)
+    - exchange/limiter.rs (rate limiting)
+    - src/main.rs (connection status updates)
+  validation_tests:
+    - Connections establish reliably
+    - Auto-reconnection works
+    - Health monitoring accurate
+    - Error recovery functions
+
+exchange/fetcher.rs:
+  purpose: "Historical data fetching and backfill operations"
+  responsibilities:
+    - Historical data retrieval
+    - Data backfill coordination
+    - Batch processing
+    - Data validation
+  modify_for:
+    - New data sources
+    - Backfill improvements
+    - Batch processing enhancements
+    - Validation updates
+  integration_points:
+    - exchange/adapter/ (exchange-specific fetching)
+    - data/chart/ (data processing)
+    - src/modal/pane/settings.rs (backfill settings)
+  validation_tests:
+    - Historical data fetches correctly
+    - Backfill operations complete
+    - Batch processing works
+    - Data validation functions
+
+exchange/limiter.rs:
+  purpose: "Exchange-specific rate limiting and request throttling"
+  responsibilities:
+    - Rate limit enforcement
+    - Request queuing
+    - Throttling algorithms
+    - Exchange compliance
+  modify_for:
+    - Rate limit adjustments
+    - Queuing improvements
+    - Algorithm enhancements
+    - Compliance updates
+  integration_points:
+    - exchange/adapter/ (all exchange requests)
+    - exchange/connect.rs (connection management)
+    - exchange/fetcher.rs (data fetching)
+  validation_tests:
+    - Rate limits enforced correctly
+    - Request queuing works
+    - Throttling prevents violations
+    - Exchange compliance maintained
+
+exchange/depth.rs:
+  purpose: "Order book depth data structures and processing"
+  responsibilities:
+    - Depth data modeling
+    - Order book management
+    - Level aggregation
+    - Data validation
+  modify_for:
+    - New depth features
+    - Data structure improvements
+    - Aggregation enhancements
+    - Validation updates
+  integration_points:
+    - exchange/adapter/ (depth data sources)
+    - data/chart/heatmap.rs (depth visualization)
+    - src/chart/heatmap.rs (depth rendering)
+  validation_tests:
+    - Depth data structures valid
+    - Order book management accurate
+    - Level aggregation correct
+    - Data validation works
+
+## Build and Configuration Files
+
+Cargo.toml:
+  purpose: "Main workspace configuration and dependency management"
+  responsibilities:
+    - Workspace member definitions
+    - Shared dependency versions
+    - Build configuration
+    - Feature flag definitions
+  modify_for:
+    - New workspace members
+    - Dependency updates
+    - Build configuration changes
+    - Feature additions
+  integration_points:
+    - data/Cargo.toml (data workspace)
+    - exchange/Cargo.toml (exchange workspace)
+    - All source files (dependency usage)
+  validation_tests:
+    - Workspace builds successfully
+    - All dependencies resolve
+    - Feature flags work correctly
+    - Build configuration valid
+
+rustfmt.toml:
+  purpose: "Code formatting configuration"
+  responsibilities:
+    - Formatting rules definition
+    - Code style enforcement
+    - Consistency maintenance
+    - Team collaboration support
+  modify_for:
+    - Formatting rule changes
+    - Style preference updates
+    - Tool configuration changes
+    - Consistency improvements
+  integration_points:
+    - All Rust source files (formatting application)
+    - Development workflow (cargo fmt)
+    - CI/CD pipeline (formatting checks)
+  validation_tests:
+    - All code formats correctly
+    - Formatting rules apply consistently
+    - No formatting conflicts
+    - Style guide compliance
+
+clippy.toml:
+  purpose: "Linting configuration and rule definitions"
+  responsibilities:
+    - Lint rule configuration
+    - Warning level settings
+    - Exception definitions
+    - Code quality enforcement
+  modify_for:
+    - Lint rule adjustments
+    - Warning level changes
+    - Exception updates
+    - Quality standard updates
+  integration_points:
+    - All Rust source files (linting application)
+    - Development workflow (cargo clippy)
+    - CI/CD pipeline (lint checks)
+  validation_tests:
+    - Linting passes successfully
+    - Rules apply correctly
+    - Exceptions work properly
+    - Code quality maintained
+
+## Key Integration Patterns
+
+### GUI Component Integration
+Primary Pattern: src/widget/ → src/screen/ → src/modal/
+- Custom widgets implement Iced Element trait
+- Screen components compose widgets into layouts  
+- Modal system provides dialog management
+- Theme system applies consistent styling
+
+### Chart System Integration
+Primary Pattern: exchange/ → data/chart/ → src/chart/
+- Exchange adapters provide raw market data
+- Data layer processes and aggregates information
+- Chart components render processed data
+- Real-time updates flow through message system
+
+### Configuration Integration  
+Primary Pattern: data/config/ → saved-state.json → Application State
+- Configuration modules define data structures
+- JSON persistence provides cross-session state
+- Application loads state on startup
+- Changes propagate through message system
+
+### Exchange Integration
+Primary Pattern: exchange/adapter/ → exchange/connect.rs → data/
+- Adapters implement exchange-specific logic
+- Connection manager handles WebSocket lifecycle
+- Data flows to processing and chart systems
+- Error handling provides graceful degradation
+
+This comprehensive file map enables autonomous agents to understand the complete codebase structure, identify the correct files to modify for specific tasks, and understand integration points and validation requirements.

@@ -1,0 +1,7 @@
+{
+  "session_id": "f566a716-19c5-4e90-987a-d6c821f68509",
+  "prompts": [
+    "could you explain the difference between @PLAN.md and @FINAL_PLAN.md ?",
+    "i could write @FINAL_PLAN.md in RESULT.md in a way thats better written and organized for my agents to interpret? this is a plan for claude to follow"
+  ]
+}

@@ -1,0 +1,9 @@
+{
+  "session_id": "d129c7e2-0bd2-4e86-8bd0-5d1a0ea18802",
+  "prompts": [
+    "\nRun cd ./nix && nix develop --accept-flake-config -c cargo fmt --all -- --check\n/home/runner/work/_temp/4e0a7d4d-f548-4ed3-870a-d86e603bc815.sh: line 1: cd: ./nix: No such file or directory",
+    "i dont think i can use that in github actions",
+    "could you fix my @.github/workflows/ci.yml ??",
+    "continue"
+  ]
+}

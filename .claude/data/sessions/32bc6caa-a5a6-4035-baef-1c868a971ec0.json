@@ -1,0 +1,6 @@
+{
+  "session_id": "32bc6caa-a5a6-4035-baef-1c868a971ec0",
+  "prompts": [
+    "/documentation --generate --technical --agent-context --user --documentation"
+  ]
+}

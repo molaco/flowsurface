@@ -1,0 +1,7 @@
+{
+  "session_id": "44138a02-3fc2-47a4-8053-90fe337e2d1e",
+  "prompts": [
+    "do git diff main to see changes and give me a short review",
+    "commit changes"
+  ]
+}

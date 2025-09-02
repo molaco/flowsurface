@@ -1,0 +1,7 @@
+{
+  "session_id": "e4a6156a-6207-482f-97db-5214923b3f3b",
+  "prompts": [
+    "dont do any changes or read any files in @src/. I want my sub-agents to write their responses on a yaml file. should i just specify this in rules.md, claude.md, and/or sub agent .md files? Or should i modify my on agent stop .py hook to have this funcionality?",
+    "how would you update rules.md to make the subagents save their responses in yaml file and read them if needed?"
+  ]
+}

@@ -1,0 +1,19 @@
+{
+  "session_id": "0bcb3721-d0a5-498d-b214-8d8cd91034bd",
+  "prompts": [
+    "use @hyperliquid_rust_sdk/docs/ to tell me if we can implement // // Helper function to get shared market context data\n// async fn get_shared_market_ctx(info_client: &InfoClient, coins: Vec<String>) -> anyhow::Result<serde_json::Value> {\n//     let input = InfoRequest::SharedAssetCtx { coins };\n//     info_client.send_info_request(input).await\n// }\nin the @hyperliquid_rust_sdk/src/info/info_client.rs for InfoClient",
+    "what do you mean API endpoint? whats the dif with ws subs data? ",
+    "is there a subscription to SharedAssetCtx?",
+    "what do you reccomend i should do to get     pub day_ntl_vlm: String,\n    pub prev_day_px: String,\n    pub mark_px: String,\n    pub mid_px: Option<String>,  for my landing page (i need updates as fast as possible)",
+    "what about this \n    pub async fn spot_meta_and_asset_contexts(&self) -> Result<Vec<SpotMetaAndAssetCtxs>> {\n        let input = InfoRequest::SpotMetaAndAssetCtxs;\n        self.send_info_request(input).await\n    }",
+    "with  info_client.spot_meta_and_asset_contexts can i get info just for tracked coins",
+    "is this method not for choosing pairs/coins? impl SpotMeta {\n    pub fn add_pair_and_name_to_index_map(\n        &self,\n        mut coin_to_asset: HashMap<String, u32>,\n    ) -> HashMap<String, u32> {\n        let index_to_name: HashMap<usize, &str> = self\n            .tokens\n            .iter()\n            .map(|info| (info.index, info.name.as_str()))\n            .collect();\n\n        for asset in self.universe.iter() {\n            let spot_ind: u32 = 10000 + asset.index as u32;\n            let name_to_ind = (asset.name.clone(), spot_ind);\n\n            let Some(token_1_name) = index_to_name.get(&asset.tokens[0]) else {\n                continue;\n            };\n\n            let Some(token_2_name) = index_to_name.get(&asset.tokens[1]) else {\n                continue;\n            };\n\n            coin_to_asset.insert(format!(\"{token_1_name}/{token_2_name}\"), spot_ind);\n            coin_to_asset.insert(name_to_ind.0, name_to_ind.1);\n        }\n\n        coin_to_asset\n    }\n}",
+    "i want the fastest method. i want live data all the time as fast as possible always all the time very fast",
+    "\u007f\u007f\u007f\u007fcould you make a plan PLAN.md of how to implement websocket subs for fetching the market data we have been discussing for my landing page (very fast, the fastest, all the time) for tracked pairs. i also need you to specify the changes we need to accomodate for in the rest of the code. i need this data to work flawlessly with my landing page. Very important: i dont need to store this data.",
+    "should we reuse sth from the Trades websocket subscription?",
+    "any cons of reusing?",
+    "what about scalability?",
+    "i think you could just call websocket sub with all the tracked pairs just once. you dont need to create a new websocket sub for each pair",
+    "update PLAN.md"
+  ]
+}

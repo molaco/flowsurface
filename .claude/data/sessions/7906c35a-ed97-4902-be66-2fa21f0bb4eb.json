@@ -1,0 +1,8 @@
+{
+  "session_id": "7906c35a-ed97-4902-be66-2fa21f0bb4eb",
+  "prompts": [
+    "create a file CONSIDERATIONS.md in which u analyze @hyperliquid_rust_sdk_utils/ with current hyperliquid_rust_sdk version 0.6.0 documentation and code base. hyperliquid_rust_sdk_utils might be outdated there are a lot of structs on hyperliquid_rust_sdk 0.6.0  which may make our life easier. analyze current arquitecture of hyperliquid_rust_sdk_utils and explain how to better implement our current stuff with the best practices and scalability in mind. @CONCERNS.md may be interesting to have a look at the current problems we are facing.",
+    "what about current hyperliquid rust sdk? i want to know if it has stuff already done tha we are redoing and could instead just use that and not develop ours",
+    "write the new plan to look in the official sdk in NEW_PLAN.md"
+  ]
+}

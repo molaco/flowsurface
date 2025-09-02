@@ -1,0 +1,6 @@
+{
+  "session_id": "1bb38670-f267-474d-be60-9d385b7aedde",
+  "prompts": [
+    "ultrathink --plan how would you implement PairPriceData struct in @hyperliquid_rust_sdk_utils/src/price_data/perps.rs ?? develop a plan in called IMPL.md try and re use as much code as possible from @hyperliquid_rust_sdk_utils/  and from hyperliquid_rust_sdk. i have been looking at the code and i think (correct me if im wrong) you can just get the json from the Prices struct in @hyperliquid_rust_sdk_utils/src/prices.rs into an intermediary struct with the data and then populate PairPriceData."
+  ]
+}

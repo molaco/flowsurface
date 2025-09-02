@@ -1,0 +1,7 @@
+{
+  "session_id": "c2c409a7-db6b-4365-9386-3db7dd2a0a30",
+  "prompts": [
+    "can you see what got done of @PROFILE.md ",
+    "finish implementations and because you are not allowed to remove stuff create a file REMOVE.md and tell  me there what to remove (files, fuctions,...)"
+  ]
+}

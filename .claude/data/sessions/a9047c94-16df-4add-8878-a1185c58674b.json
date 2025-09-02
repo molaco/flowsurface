@@ -1,0 +1,9 @@
+{
+  "session_id": "a9047c94-16df-4add-8878-a1185c58674b",
+  "prompts": [
+    "i want to make a customizable volumen profile footprint chart. how would you do this. just plan no file changes",
+    "is it possible to do it with light charts? or do we need something else?",
+    "\u00a0could you create an implementation plan PLAN.md? please be very meticuloous and make it aling as much as possible with current code (no beyond necessary). in @pics/profile_footprint.png you can see an image of how i want it to look",
+    "could we put the new volume footprint chart in a different page? that way i dont need to modify my current tri-pane layout for regular chart"
+  ]
+}

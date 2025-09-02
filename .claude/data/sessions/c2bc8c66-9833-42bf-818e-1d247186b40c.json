@@ -1,0 +1,9 @@
+{
+  "session_id": "c2bc8c66-9833-42bf-818e-1d247186b40c",
+  "prompts": [
+    "@agent-frontend_developer how would you make a two pane layout with one for volume and one for the rest?",
+    "@agent-frontend_developer --plan the volume pain is completly white. use playright",
+    "@agent-frontend_developer --plan --adversary evaluate the plan",
+    "@agent-frontend_developer --build"
+  ]
+}

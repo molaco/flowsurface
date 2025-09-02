@@ -1,0 +1,9 @@
+{
+  "session_id": "a418a1b3-1cb9-4fc4-8c6b-5887dda5df51",
+  "prompts": [
+    "serena load hyper and review @review/",
+    "do a list of things i can do based on the files",
+    "serena check if these issues are still relevant i actually changed a lot of the code ",
+    "serena make a md file in project root with all the issues. also investigate new potential issues in current codebase and add them. be concise"
+  ]
+}

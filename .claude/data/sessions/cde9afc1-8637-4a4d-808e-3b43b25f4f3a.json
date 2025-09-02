@@ -1,0 +1,8 @@
+{
+  "session_id": "cde9afc1-8637-4a4d-808e-3b43b25f4f3a",
+  "prompts": [
+    "i recently tried implementing @PLAN.md could see what got done and what not? also if what got done is according to my specification?",
+    "are u sure? there is trade data in @hyper_trade/src/handlers/live_candles.rs  in function start_direct_trades_stream",
+    "create NEW_PLAN.md were you document what got done, what not and how to implement the missing stuff"
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "session_id": "d3151699-e7b9-4a84-85a9-a7c4ec0c8cc7",
+  "prompts": [
+    "can you redo the whole @hyper_trade/web/js/market_data_client.js from the websocket we get pub struct MarketDataUpdate {\n    pub coin: String,\n    pub day_ntl_vlm: String,\n    pub prev_day_px: String,\n    pub mark_px: String,\n    pub mid_px: Option<String>,\n}\nin the landing page index. i want price to be mark_px, volume 24h to be day_ntl_vlm and 24h price change to be 24-hour percentage change ((mark_px - prev_day_px) / prev_day_px * 100). Currently i get no values for the rows. you can check using playwright. analyze everything related to market data web socket, the entry point is         let subscription = Subscription::ActiveAssetCtx { coin: coin.clone() };.  "
+  ]
+}

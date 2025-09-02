@@ -1,0 +1,7 @@
+{
+  "session_id": "180de67c-e047-466f-a0c5-973d377bb002",
+  "prompts": [
+    "\u007fI want to implement order book info websocket subscription. i want to save it into the db too (i also need to fetch historic not only websocke sub). And i want to expose the live  in another pane (a vertical pane) with a slider for manual resize just like we have for volume but vertical. could you develop a concise plan of step by step what we need to do? save it in PLAN.md",
+    "could you be more explicit in PLAN.md and also add code snippets ?"
+  ]
+}

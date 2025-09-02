@@ -1,0 +1,7 @@
+{
+  "session_id": "e8c1ca72-06f6-43dc-9015-3aaf47af5bbb",
+  "prompts": [
+    "@agent-frontend_developer how would you make a two pane layout with one for volume and one for the rest?",
+    "/main implement --my_workflow"
+  ]
+}

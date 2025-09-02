@@ -1,0 +1,6 @@
+{
+  "session_id": "c3dcc39c-c2c7-4969-86cb-dcf00b4bb11e",
+  "prompts": [
+    "only read files @RULES.md @CLAUDE.md and @.claude/ dir. I want my sub agents to respond in yaml format i did specify this. But i dont want my main agent not give me a summary at the end with tts. I think it sometimes conflicts because i have it as a hook with on agent stop. I also want to know when my subagents finish with tts. What do you recomment? dont change any files."
+  ]
+}

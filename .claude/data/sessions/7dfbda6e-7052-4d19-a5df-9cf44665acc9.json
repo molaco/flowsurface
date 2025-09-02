@@ -1,0 +1,13 @@
+{
+  "session_id": "7dfbda6e-7052-4d19-a5df-9cf44665acc9",
+  "prompts": [
+    "/main fix chart padding so that the lastest candle is positioned 3/4 of the way to the right",
+    "/main last padding implementation for last candle was wrong. i want the lastest candle to be 3/4 of the way from left to right. It should be close to the right of the screen but not too much. be sure to use playright mcp to see whats happening",
+    "its not working. do git diff to check the changes (before it was mostly good just a little to much to the right) and use @.claude/responses/ to understand why its wrong. come up with a real solution and ask me before implementing.",
+    "yes please",
+    "thats wonderful. would you be able to tell why the previous prompts didnt work ? analyziz @RULES.md @.claude/agents/frontend_developer.md @FLAGS.md @.claude/workflows/feature_implementation.yaml @.claude/commands/main.md ",
+    "just tell me dont change anything. how would you implement task classification?",
+    "wouldnt rule 0 be better in main.md file?",
+    "would it be better to add news flags --simple --medium --complex and instead put everything in flags?"
+  ]
+}

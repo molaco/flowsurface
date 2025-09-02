@@ -1,0 +1,9 @@
+{
+  "session_id": "40537a0e-f516-48cd-934e-5ced5c48f513",
+  "prompts": [
+    "/create an orchestrator main agent as specify in @RULES.md so that it works together with the other agents as specify. i want to be able to easily call main agentl. and i want to be able to have workflows as in @RULES.md  and also have regular promps when not specified to call main/orchestrator agent. what do you recommend? do not change any files.",
+    "what are the files in the workflows dir?",
+    "ok implement the option 1 with command main and workflow dir. and just create three example workflows (bug_fix, git_commit, feature_implementation). After that (without changing any files) tell me how would you change current @RULES.md to adapt for the changes?",
+    "ok implement the rules changes and give me an example of how to use a workflow."
+  ]
+}

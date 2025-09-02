@@ -1,0 +1,494 @@
+# Validation Rules and Success Criteria
+# This file defines comprehensive validation rules for autonomous agents to verify successful task completion
+
+## Build and Compilation Validation
+
+build_success:
+  description: "Verify code compiles successfully across all build modes"
+  rules:
+    cargo_build:
+      command: "cargo build"
+      expected_outcome: "exits with code 0"
+      failure_indicators:
+        - "error: could not compile"
+        - "error[E0XXX]:"
+        - "failed to resolve"
+        - "cannot find"
+      timeout: "120 seconds"
+    
+    cargo_build_release:
+      command: "cargo build --release"
+      expected_outcome: "exits with code 0"
+      failure_indicators:
+        - "error: could not compile"
+        - "error[E0XXX]:"
+        - "optimization error"
+      timeout: "300 seconds"
+    
+    cargo_check:
+      command: "cargo check"
+      expected_outcome: "exits with code 0"
+      failure_indicators:
+        - "error: could not compile"
+        - "failed to resolve"
+      timeout: "60 seconds"
+
+code_quality:
+  description: "Verify code meets quality standards"
+  rules:
+    clippy_check:
+      command: "cargo clippy -- -D warnings"
+      expected_outcome: "exits with code 0"
+      allowed_warnings: []
+      failure_indicators:
+        - "error: "
+        - "warning: "
+      timeout: "120 seconds"
+    
+    format_check:
+      command: "cargo fmt -- --check"
+      expected_outcome: "exits with code 0"
+      failure_indicators:
+        - "Diff in"
+        - "would be formatted differently"
+      timeout: "30 seconds"
+    
+    test_execution:
+      command: "cargo test"
+      expected_outcome: "exits with code 0"
+      required_passes: "all tests"
+      failure_indicators:
+        - "test result: FAILED"
+        - "failures:"
+        - "panicked at"
+      timeout: "300 seconds"
+
+## Application Runtime Validation
+
+application_startup:
+  description: "Verify application launches and initializes correctly"
+  rules:
+    startup_success:
+      validation_method: "launch_and_monitor"
+      expected_outcome: "application window appears"
+      timeout: "10 seconds"
+      failure_indicators:
+        - "panic"
+        - "crashed"
+        - "failed to initialize"
+        - "no window created"
+    
+    logger_initialization:
+      validation_method: "check_logs"
+      expected_outcome: "logger initializes without errors"
+      success_indicators:
+        - "Logger initialized successfully"
+        - "Log level set to"
+      failure_indicators:
+        - "Failed to initialize logger"
+        - "Logger setup error"
+    
+    font_loading:
+      validation_method: "check_logs_and_ui"
+      expected_outcome: "fonts load correctly and display in UI"
+      success_indicators:
+        - "Fonts loaded successfully"
+        - "UI elements render with correct fonts"
+      failure_indicators:
+        - "Font loading error"
+        - "Failed to load font"
+        - "Font fallback used"
+
+gui_functionality:
+  description: "Verify GUI components function correctly"
+  rules:
+    window_management:
+      validation_method: "gui_interaction_test"
+      tests:
+        - "main window opens and displays correctly"
+        - "window can be resized without errors"
+        - "window can be minimized and restored"
+        - "popout windows can be created if supported"
+      timeout: "5 seconds per test"
+      
+    dashboard_rendering:
+      validation_method: "visual_verification"
+      tests:
+        - "dashboard layout renders without missing elements"
+        - "sidebar displays correctly"
+        - "pane grid initializes properly"
+        - "all UI elements are clickable and responsive"
+      
+    theme_application:
+      validation_method: "theme_switching_test"
+      tests:
+        - "default theme applies correctly"
+        - "theme changes reflect immediately in UI"
+        - "all components respect theme colors"
+        - "theme persists between application restarts"
+
+## Chart System Validation
+
+chart_rendering:
+  description: "Verify chart components render correctly and perform well"
+  rules:
+    chart_display:
+      validation_method: "chart_rendering_test"
+      chart_types:
+        heatmap:
+          tests:
+            - "heatmap renders with test data"
+            - "volume profile displays correctly"
+            - "price levels aggregate properly"
+            - "color gradients apply correctly"
+          performance: "renders within 100ms for 1000 data points"
+          
+        candlestick:
+          tests:
+            - "candlesticks render with OHLCV data"
+            - "candlestick colors indicate price direction correctly"
+            - "time axis displays correctly"
+            - "price axis scales appropriately"
+          performance: "renders within 50ms for 1000 candlesticks"
+          
+        indicators:
+          tests:
+            - "indicators calculate correctly"
+            - "indicator plots render on chart"
+            - "indicator settings apply correctly"
+            - "multiple indicators can be displayed simultaneously"
+          performance: "indicator calculations complete within 10ms"
+    
+    chart_interaction:
+      validation_method: "interaction_test"
+      tests:
+        - "chart zooming works smoothly"
+        - "chart panning functions correctly"
+        - "chart scaling maintains accuracy"
+        - "real-time updates don't cause stuttering"
+      performance_requirements:
+        - "zoom response time < 50ms"
+        - "pan response time < 50ms"
+        - "real-time updates > 30 FPS"
+
+data_accuracy:
+  description: "Verify chart data processing and display accuracy"
+  rules:
+    data_processing:
+      validation_method: "data_accuracy_test"
+      tests:
+        - "OHLCV calculations match expected values"
+        - "volume aggregation is mathematically correct"
+        - "time-based aggregation groups data correctly"
+        - "price level grouping works accurately"
+      tolerance: "0.0001% for price calculations"
+      
+    real_time_updates:
+      validation_method: "real_time_test"
+      tests:
+        - "live data updates charts correctly"
+        - "data latency is within acceptable limits"
+        - "no data loss during rapid updates"
+        - "chart synchronization works across multiple panes"
+      performance_requirements:
+        - "data latency < 100ms"
+        - "update frequency > 10 updates/second"
+
+## Exchange Integration Validation
+
+connection_stability:
+  description: "Verify exchange connections are stable and reliable"
+  rules:
+    websocket_connections:
+      validation_method: "connection_test"
+      exchanges: ["binance", "bybit", "hyperliquid"]
+      tests:
+        - "WebSocket connection establishes successfully"
+        - "connection remains stable for extended periods"
+        - "auto-reconnection works after disconnection"
+        - "connection status updates correctly in UI"
+      stability_requirements:
+        - "connection uptime > 99.5%"
+        - "reconnection time < 5 seconds"
+        - "max reconnection attempts: 10"
+    
+    data_reception:
+      validation_method: "data_flow_test"
+      tests:
+        - "trade data receives correctly from WebSocket"
+        - "order book data processes accurately"
+        - "ticker updates reflect in UI"
+        - "data format parsing works correctly"
+      performance_requirements:
+        - "data processing latency < 50ms"
+        - "no data corruption or parsing errors"
+    
+    rate_limiting:
+      validation_method: "rate_limit_test"
+      tests:
+        - "rate limiting prevents API violations"
+        - "request queuing works correctly"
+        - "throttling algorithms respect exchange limits"
+        - "rate limit status updates correctly"
+      compliance_requirements:
+        - "no rate limit violations"
+        - "request rate stays within exchange limits"
+
+historical_data:
+  description: "Verify historical data fetching and accuracy"
+  rules:
+    data_fetching:
+      validation_method: "historical_data_test"
+      tests:
+        - "historical trades fetch correctly"
+        - "data backfill operations complete successfully"
+        - "fetched data matches expected format"
+        - "data validation prevents corrupted data"
+      performance_requirements:
+        - "data fetch speed > 1000 trades/second"
+        - "data validation error rate < 0.01%"
+    
+    data_integration:
+      validation_method: "integration_test"
+      tests:
+        - "historical data integrates with live data seamlessly"
+        - "chart updates correctly with historical backfill"
+        - "no gaps or overlaps in data timeline"
+        - "data persistence works correctly"
+
+## Configuration and Persistence Validation
+
+configuration_management:
+  description: "Verify configuration system works correctly"
+  rules:
+    config_persistence:
+      validation_method: "config_test"
+      tests:
+        - "configuration saves to JSON file correctly"
+        - "configuration loads from JSON file correctly"
+        - "default configuration values are appropriate"
+        - "configuration migration works for format changes"
+      file_validation:
+        - "saved-state.json is valid JSON"
+        - "all configuration fields are present"
+        - "no data corruption in saved file"
+    
+    settings_application:
+      validation_method: "settings_test"
+      tests:
+        - "theme settings apply immediately"
+        - "sidebar settings persist between sessions"
+        - "layout settings restore correctly"
+        - "all settings dialogs function properly"
+
+data_persistence:
+  description: "Verify data persistence works reliably"
+  rules:
+    state_management:
+      validation_method: "state_test"
+      tests:
+        - "application state saves on exit"
+        - "application state restores on startup"
+        - "state corruption is handled gracefully"
+        - "state migration preserves user data"
+      reliability_requirements:
+        - "state save success rate > 99.9%"
+        - "state corruption recovery rate > 95%"
+    
+    layout_persistence:
+      validation_method: "layout_test"
+      tests:
+        - "window layouts save and restore correctly"
+        - "pane configurations persist properly"
+        - "layout templates work as expected"
+        - "layout sharing/export functions correctly"
+
+## Performance Validation
+
+memory_management:
+  description: "Verify memory usage is optimal and stable"
+  rules:
+    memory_usage:
+      validation_method: "memory_profiling"
+      tests:
+        - "memory usage remains stable during operation"
+        - "no memory leaks detected"
+        - "memory usage scales appropriately with data"
+        - "garbage collection works effectively"
+      performance_requirements:
+        - "base memory usage < 100MB"
+        - "memory growth rate < 1MB/hour"
+        - "max memory usage < 500MB with large datasets"
+    
+    memory_cleanup:
+      validation_method: "cleanup_test"
+      tests:
+        - "old market data cleans up automatically"
+        - "unused chart data is freed correctly"
+        - "connection cleanup releases resources"
+        - "UI component cleanup works properly"
+
+cpu_performance:
+  description: "Verify CPU usage is efficient and responsive"
+  rules:
+    cpu_usage:
+      validation_method: "cpu_profiling"
+      tests:
+        - "CPU usage remains reasonable during normal operation"
+        - "CPU spikes are temporary and recover quickly"
+        - "real-time processing doesn't monopolize CPU"
+        - "UI remains responsive during high data loads"
+      performance_requirements:
+        - "average CPU usage < 20%"
+        - "max CPU usage < 80% during peak loads"
+        - "UI response time < 50ms"
+    
+    rendering_performance:
+      validation_method: "rendering_profiling"
+      tests:
+        - "chart rendering maintains smooth frame rate"
+        - "UI animations are smooth and responsive"
+        - "large dataset rendering doesn't cause lag"
+        - "multiple chart rendering is efficient"
+      performance_requirements:
+        - "chart rendering > 30 FPS"
+        - "UI response time < 16ms (60 FPS)"
+        - "max rendering time < 100ms for complex charts"
+
+## Cross-Platform Validation
+
+platform_compatibility:
+  description: "Verify application works correctly across all target platforms"
+  rules:
+    build_compatibility:
+      validation_method: "cross_platform_build"
+      platforms: ["windows", "macos", "linux"]
+      tests:
+        - "application builds successfully on all platforms"
+        - "all dependencies resolve correctly"
+        - "platform-specific features work correctly"
+        - "build scripts execute without errors"
+    
+    runtime_compatibility:
+      validation_method: "platform_runtime_test"
+      tests:
+        - "application launches correctly on all platforms"
+        - "UI renders correctly on different screen DPI"
+        - "file system operations work cross-platform"
+        - "audio system works on all platforms"
+        - "networking functions correctly on all platforms"
+
+## Error Handling Validation
+
+error_recovery:
+  description: "Verify application handles errors gracefully"
+  rules:
+    connection_errors:
+      validation_method: "error_injection_test"
+      tests:
+        - "network disconnection handled gracefully"
+        - "invalid data handled without crashing"
+        - "API errors display appropriate messages"
+        - "connection recovery works automatically"
+    
+    ui_error_handling:
+      validation_method: "ui_error_test"
+      tests:
+        - "invalid user input handled correctly"
+        - "error messages are clear and helpful"
+        - "application doesn't crash on UI errors"
+        - "error recovery allows continued operation"
+    
+    data_error_handling:
+      validation_method: "data_error_test"
+      tests:
+        - "corrupted configuration files handled gracefully"
+        - "invalid market data filtered out"
+        - "file system errors handled appropriately"
+        - "data validation prevents crashes"
+
+## Security Validation
+
+network_security:
+  description: "Verify network communications are secure"
+  rules:
+    tls_validation:
+      validation_method: "security_test"
+      tests:
+        - "all exchange connections use TLS 1.3 or higher"
+        - "certificate validation works correctly"
+        - "no plain text communications to exchanges"
+        - "TLS handshake completes successfully"
+    
+    data_privacy:
+      validation_method: "privacy_test"
+      tests:
+        - "no sensitive data transmitted outside necessary APIs"
+        - "local data storage is secure"
+        - "no data leakage through logs or errors"
+        - "user privacy is maintained"
+
+## Integration Test Scenarios
+
+end_to_end_workflows:
+  description: "Verify complete user workflows function correctly"
+  rules:
+    trading_workflow:
+      validation_method: "workflow_test"
+      steps:
+        1: "Launch application successfully"
+        2: "Connect to exchange and receive data"
+        3: "Select ticker and display chart"
+        4: "Configure chart settings"
+        5: "Apply indicators and verify calculations"
+        6: "Switch chart types and verify data consistency"
+        7: "Save layout and verify persistence"
+        8: "Close and reopen application"
+        9: "Verify layout and settings restored correctly"
+      
+    theme_customization_workflow:
+      validation_method: "theme_workflow_test"
+      steps:
+        1: "Open theme editor"
+        2: "Modify theme colors"
+        3: "Apply changes and verify immediate update"
+        4: "Export theme successfully"
+        5: "Import theme and verify application"
+        6: "Switch between themes"
+        7: "Verify theme persistence across restarts"
+
+## Validation Automation
+
+automated_validation:
+  description: "Define which validations can be automated"
+  automated_tests:
+    - "build_success (all rules)"
+    - "code_quality (all rules)"
+    - "configuration_management (config_persistence)"
+    - "data_persistence (state_management)"
+    - "memory_management (memory_usage basic checks)"
+    - "platform_compatibility (build_compatibility)"
+  
+  manual_validation_required:
+    - "gui_functionality (visual verification)"
+    - "chart_rendering (visual accuracy)"
+    - "user_experience (subjective evaluation)"
+    - "cross_platform UI (platform-specific testing)"
+
+validation_reporting:
+  description: "Define how validation results should be reported"
+  report_format:
+    - "Test name and description"
+    - "Pass/Fail status"
+    - "Execution time"
+    - "Error messages if failed"
+    - "Performance metrics if applicable"
+    - "Screenshots for visual tests if failed"
+  
+  failure_handling:
+    - "Stop on first critical failure (build errors)"
+    - "Continue with warnings (minor issues)"
+    - "Aggregate results for comprehensive report"
+    - "Provide clear remediation steps"
+
+This comprehensive validation framework ensures that all modifications to the Flowsurface codebase are thoroughly tested and verified before being considered complete.

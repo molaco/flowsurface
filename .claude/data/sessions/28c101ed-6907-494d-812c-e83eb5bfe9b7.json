@@ -1,0 +1,8 @@
+{
+  "session_id": "28c101ed-6907-494d-812c-e83eb5bfe9b7",
+  "prompts": [
+    "i want to fix the 24h volume in index.html it is saying \"No data\" i want to have current daily volume. each symbol pair 24h volume should correspond with the 1d chart live update candle with tick price changes based on new trades. i think, tell me if im right or not, that we need to update all tracked symbols live instead of doing it just when the chart is open? elaborate a plan in PLAN.md",
+    "but isnt volume already in the datastructure for the candles?",
+    "redo the plan file"
+  ]
+}

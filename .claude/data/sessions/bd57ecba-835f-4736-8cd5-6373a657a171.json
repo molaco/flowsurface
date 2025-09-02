@@ -1,0 +1,10 @@
+{
+  "session_id": "bd57ecba-835f-4736-8cd5-6373a657a171",
+  "prompts": [
+    "i have two overlapping \"connecting to live market data...\" one on top of each other. its very distracting. do you know what i mean?",
+    "its not fixed its and html thing right?",
+    "i still see it. you have to remove the messagein index.js",
+    "ok it worked but it was the other way around i need the js one and remove the html",
+    "i keep seen two. "
+  ]
+}

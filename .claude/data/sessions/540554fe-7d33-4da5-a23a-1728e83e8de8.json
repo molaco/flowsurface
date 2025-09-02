@@ -1,0 +1,6 @@
+{
+  "session_id": "540554fe-7d33-4da5-a23a-1728e83e8de8",
+  "prompts": [
+    "based on @.claude/commands/main.md write a workflow template which creates a new branch and a new github issue for the task and creates a pull request"
+  ]
+}

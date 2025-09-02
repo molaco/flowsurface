@@ -1,0 +1,7 @@
+{
+  "session_id": "466d85bd-a5c4-4ebe-a9fd-0f45b24e9c8f",
+  "prompts": [
+    "call the documentation agent to check out @CLAUDE.md and tell me if its up to date. ",
+    "call the documentation agent to fix it"
+  ]
+}

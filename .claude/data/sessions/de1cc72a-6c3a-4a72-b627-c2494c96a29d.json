@@ -1,0 +1,8 @@
+{
+  "session_id": "de1cc72a-6c3a-4a72-b627-c2494c96a29d",
+  "prompts": [
+    "/git_status ",
+    "push but i dont want logs or responses in my github. i do wnat hooks/ output-style/ workflows/ and settings.local.json",
+    "dont restore .gitignore. why woudl you do that?"
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "session_id": "c33e9a84-8520-49d2-9ec0-f6e8af3a9d8f",
+  "prompts": [
+    "read @hyperliquid-rust-sdk/docs/ and write a comprehesive plan on how to completely replace our current crate @hyperliquid_rust_sdk_utils/ by just using the official sdk. be careful to analysis all the interactions with hyper_trade crate. maybe a lot of stuff we use to manage hyperliquid_rust_sdk_utils in our current hyper_trade implementation is overengineered. Write the plan in a file PLAN.md"
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "session_id": "caa136cd-5571-4aa2-b0a9-ec7e7a28985f",
+  "prompts": [
+    "can you fix my foot print chart? we are rendering candles and volume footprint but the volume footprint its does not move with the candles, its not attached, it does not change when zooming or changing scale. the footprint should be at the right of the candle and match the chart price levels."
+  ]
+}

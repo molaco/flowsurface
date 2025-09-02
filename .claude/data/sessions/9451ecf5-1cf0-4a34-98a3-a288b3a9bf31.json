@@ -1,0 +1,9 @@
+{
+  "session_id": "9451ecf5-1cf0-4a34-98a3-a288b3a9bf31",
+  "prompts": [
+    "pls tell me how my volume button works with great detail",
+    "serena list_projects",
+    "serena activate_project (MCP)(project: hyper)",
+    "serena - find_symbol (MCP)(name_path: \"volume\", relative_path: \"hyper_trade/web\", substring_matching: true, include_body: true)"
+  ]
+}

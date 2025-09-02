@@ -1,0 +1,12 @@
+{
+  "session_id": "086a7d5a-8b24-4b09-9823-a6783fd1e6bf",
+  "prompts": [
+    "could you review @/home/nixos/documents/hyper/.claude/commands/documentation.md @/home/nixos/documents/hyper/.claude/agents/documentation.md @.claude/workflows/documentation.yaml ? i want to be able to call the documentation command whenever i need to create good documentation for a project or update existing documentation. dont change any files just tell me",
+    "my project is not very big. i dont want github for the docs. --generate and --update should be mutually exclusive. Any improvements you can think of?",
+    "how would you coordinate different agents together with the documentation agent?",
+    "how should should general project documentation outline usually look like?",
+    "i want the docs to be useful to my agents and the main orchestractor only. would you do something different in this case?",
+    "could you develop a plan PLAN.md?",
+    "ok first lets update the documentation workflow, documentation agent, and documentation command"
+  ]
+}

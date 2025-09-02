@@ -1,0 +1,8 @@
+{
+  "session_id": "e73ba9a3-36a9-4fbb-b525-7961c670cce6",
+  "prompts": [
+    "could you fix my colors in my landing page? just the landing page and respect the black and white theme. just make it so that i can better distinguis the elements",
+    "use playwright",
+    "fix the padding of the outter most box"
+  ]
+}

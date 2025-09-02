@@ -1,0 +1,9 @@
+{
+  "session_id": "c2a74db4-d451-4cc6-badf-090d72dc061b",
+  "prompts": [
+    "ask the documentation agent if we are missing some docs for the subagent context? would he do something differently? would he add something?",
+    "did the documentation agent check @docs/ ?",
+    "ask him if there is any overlapping documentation in @AGENT_CONTEXT.md @CLAUDE.md @docs/ ",
+    "consodialte"
+  ]
+}

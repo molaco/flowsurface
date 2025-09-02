@@ -1,0 +1,8 @@
+{
+  "session_id": "7920090c-c5d8-4214-8ea4-a525688de2b1",
+  "prompts": [
+    "can you check we are not using hyperliquid_rust_sdk_utils crate?",
+    "so wtf did we do in @NEW_PLAN.md and @RESULT.md ???",
+    "create a new plan PLAN.md to remove the use of hyperliquid_rust_sdk_utils and replace with official skd"
+  ]
+}

@@ -1,6 +1,14 @@
 # Flowsurface
 
-An experimental open-source desktop charting application. Currently supports Binance and Bybit
+An experimental open-source desktop charting application. Currently supports Binance, Bybit, and Hyperliquid
+
+## 📚 Documentation
+
+- **[User Guide](docs/user-guide.md)** - Complete guide for end users
+- **[Technical Architecture](docs/technical-architecture.md)** - System design and architecture  
+- **[API Reference](docs/api-reference.md)** - Programming interfaces and data structures
+- **[Development Setup](CLAUDE.md)** - Development environment and workflows
+- **[Full Documentation Index](docs/README.md)** - Complete documentation overview
 
 <div align="center">
   <img width="2330" height="1440" alt="overview-layout-1" src="https://github.com/user-attachments/assets/7875117e-2475-4549-ac8c-6d350dacdb75" />

@@ -1,0 +1,326 @@
+# Quick Reference for Agents
+# Essential commands, patterns, and information for rapid development
+
+## Essential Commands
+
+build_and_test:
+  description: "Core development workflow commands"
+  commands:
+    build_debug: "cargo build"
+    build_release: "cargo build --release"
+    run_debug: "cargo run"
+    run_release: "cargo run --release"
+    run_with_debug: "cargo run --features debug"
+    test: "cargo test"
+    format: "cargo fmt"
+    lint: "cargo clippy"
+    check: "cargo check"
+  validation_sequence:
+    1: "cargo check (quick compile validation)"
+    2: "cargo clippy (linting)"
+    3: "cargo fmt --check (formatting)"
+    4: "cargo test (run tests)"
+    5: "cargo build --release (final build)"
+
+development_shortcuts:
+  description: "Useful development shortcuts and flags"
+  hot_reloading: "cargo run --features debug"
+  verbose_logging: "RUST_LOG=debug cargo run"
+  clean_build: "cargo clean && cargo build"
+  specific_test: "cargo test test_name"
+  documentation: "cargo doc --open"
+  workspace_check: "cargo check --workspace"
+
+## File System Layout
+
+critical_paths:
+  main_app: "src/main.rs"
+  gui_core: "src/screen/dashboard.rs"
+  chart_system: "src/chart/"
+  data_layer: "data/src/"
+  exchange_layer: "exchange/src/"
+  configuration: "data/config/"
+  widgets: "src/widget/"
+  modals: "src/modal/"
+  themes: "src/style.rs"
+  layouts: "src/layout.rs"
+
+config_files:
+  main_workspace: "Cargo.toml"
+  data_workspace: "data/Cargo.toml"
+  exchange_workspace: "exchange/Cargo.toml"
+  formatting: "rustfmt.toml"
+  linting: "clippy.toml"
+  saved_state: "saved-state.json"
+
+## Common Integration Points
+
+gui_integration:
+  widget_creation: "src/widget/[name].rs → src/widget.rs → integration point"
+  modal_creation: "src/modal/[name].rs → src/modal.rs → message enum update"
+  screen_update: "src/screen/ → message handling → view updates"
+  theme_integration: "src/style.rs → component styling → theme system"
+
+chart_integration:
+  new_chart_type: "data/chart/[name].rs → src/chart/[name].rs → pane integration"
+  indicator_addition: "data/chart/indicator.rs → src/chart/indicator/ → settings UI"
+  data_flow: "exchange/ → data/aggr/ → data/chart/ → src/chart/"
+  real_time_updates: "WebSocket → aggregation → chart update → GUI refresh"
+
+exchange_integration:
+  adapter_creation: "exchange/adapter/[name].rs → trait implementation → connection management"
+  websocket_setup: "exchange/connect.rs → auto-reconnection → error handling"
+  rate_limiting: "exchange/limiter.rs → exchange-specific limits → request throttling"
+  data_processing: "exchange/ → data/ → chart rendering"
+
+## Message Flow Patterns
+
+main_message_types:
+  exchange_events:
+    - "TradeReceived(Exchange, Trade)"
+    - "DepthUpdated(Exchange, Depth)"
+    - "ConnectionStatusChanged(Exchange, Status)"
+  gui_events:
+    - "TickerSelected(Ticker)"
+    - "ThemeChanged(Theme)"
+    - "LayoutModified(Layout)"
+  chart_events:
+    - "ChartScaled(Scale)"
+    - "IndicatorToggled(Indicator)"
+    - "TimeframeChanged(Timeframe)"
+
+update_pattern:
+  description: "Standard Iced update pattern"
+  signature: "fn update(&mut self, message: Message) -> Command<Message>"
+  typical_flow:
+    1: "Match on message type"
+    2: "Update internal state"
+    3: "Perform side effects if needed"
+    4: "Return Command for async operations"
+    5: "GUI automatically refreshes via view()"
+
+## Data Structures Quick Reference
+
+core_market_data:
+  Trade:
+    fields: "price, qty, time, is_buyer_maker"
+    usage: "Real-time trade processing, footprint charts"
+  Kline:
+    fields: "open_time, close_time, open, high, low, close, volume"
+    usage: "Candlestick charts, technical indicators"
+  Depth:
+    fields: "last_update_id, bids, asks"
+    usage: "Order book visualization, heatmaps"
+
+configuration_types:
+  Ticker:
+    fields: "symbol, exchange, base, quote"
+    usage: "Market identification, data routing"
+  Theme:
+    fields: "palette, background, text, colors"
+    usage: "UI customization, runtime theming"
+  Settings:
+    fields: "theme, sidebar, layout, exchanges"
+    usage: "Application configuration, persistence"
+
+## Common Patterns
+
+error_handling:
+  pattern: "Result<T, Error> with thiserror::Error derive"
+  propagation: "Use ? operator for error propagation"
+  recovery: "Graceful degradation with fallback values"
+  user_feedback: "Display errors via toast notifications"
+
+async_operations:
+  websockets: "Use tokio for async WebSocket management"
+  http_requests: "Use reqwest for REST API calls"
+  task_spawning: "Use Iced::Command for GUI-safe async operations"
+  cancellation: "Handle connection drops and timeouts"
+
+state_management:
+  persistence: "JSON serialization with serde"
+  validation: "Data validation on load with fallback to defaults"
+  migration: "Version-aware configuration migration"
+  auto_save: "Periodic state saving to prevent data loss"
+
+## Performance Considerations
+
+rendering_optimization:
+  chart_culling: "Only render visible chart elements"
+  update_batching: "Batch multiple data updates"
+  memory_management: "Bounded data structures with cleanup"
+  frame_rate: "Target 30-60 FPS for smooth updates"
+
+data_processing:
+  efficient_structures: "Use OrderedFloat, SmolStr for performance"
+  caching: "Cache expensive calculations (indicators, aggregations)"
+  streaming: "Process data incrementally rather than in bulk"
+  compression: "Compress historical data to save memory"
+
+connection_management:
+  pooling: "Reuse WebSocket connections when possible"
+  rate_limiting: "Built-in rate limiting prevents API violations"
+  auto_reconnection: "Exponential backoff for connection recovery"
+  health_monitoring: "Regular ping/pong for connection health"
+
+## Testing Strategies
+
+unit_testing:
+  data_processing: "Test aggregation algorithms with known datasets"
+  calculations: "Verify indicator calculations against reference values"
+  serialization: "Test configuration save/load cycles"
+  error_handling: "Test error conditions and recovery"
+
+integration_testing:
+  websocket_connections: "Test exchange adapters with mock servers"
+  gui_workflows: "Test complete user interactions"
+  performance: "Test with high-frequency market data"
+  cross_platform: "Test on Windows, macOS, Linux"
+
+validation_testing:
+  build_validation: "Ensure code compiles on all targets"
+  format_validation: "Verify code formatting consistency"
+  lint_validation: "Check for code quality issues"
+  dependency_validation: "Verify all dependencies resolve"
+
+## Environment Setup
+
+development_environment:
+  rust_toolchain: "Latest stable Rust (1.70+)"
+  ide_setup: "VS Code with rust-analyzer extension"
+  debugging: "Use rust-lldb or gdb for native debugging"
+  profiling: "Use cargo flamegraph for performance analysis"
+
+build_environment:
+  cross_compilation:
+    windows: "Use MinGW toolchain"
+    macos: "Universal binary with lipo"
+    linux: "Standard GNU toolchain"
+  dependencies:
+    linux: "alsa-lib-devel (audio support)"
+    macos: "Xcode command line tools"
+    windows: "No additional dependencies"
+
+## Debugging Techniques
+
+common_issues:
+  build_failures:
+    check: "Dependency conflicts in Cargo.toml"
+    solution: "Use workspace dependencies consistently"
+  runtime_crashes:
+    check: "Panic messages in terminal output"
+    solution: "Add error handling and validation"
+  gui_not_updating:
+    check: "Message flow and state updates"
+    solution: "Verify update() returns correct Command"
+  poor_performance:
+    check: "CPU/memory usage during operation"
+    solution: "Profile and optimize bottlenecks"
+
+debugging_tools:
+  logging: "Use log crate with env_logger"
+  profiling: "cargo flamegraph for CPU profiling"
+  memory: "valgrind on Linux for memory analysis"
+  gui_debugging: "Use --features debug for additional logging"
+
+## Security Considerations
+
+network_security:
+  tls_connections: "All exchange connections use TLS 1.3"
+  certificate_validation: "WebPKI root certificate validation"
+  no_plain_text: "No sensitive data in plain text"
+  local_only: "Application doesn't transmit user data"
+
+data_security:
+  local_storage: "Configuration stored locally only"
+  no_api_keys: "No private API keys required"
+  input_validation: "Validate all external data inputs"
+  memory_safety: "Rust prevents common memory vulnerabilities"
+
+## Release Process
+
+version_management:
+  semantic_versioning: "Follow semver for version numbering"
+  changelog: "Maintain CHANGELOG.md with user-facing changes"
+  git_tags: "Tag releases with v prefix (v1.2.3)"
+  release_notes: "Document new features and bug fixes"
+
+build_automation:
+  github_actions: "Automated builds for all platforms"
+  artifact_generation: "Binaries for Windows, macOS, Linux"
+  checksum_verification: "SHA256 checksums for downloads"
+  release_packaging: "Compressed archives with documentation"
+
+## Troubleshooting Quick Fixes
+
+build_issues:
+  dependency_hell: "cargo clean && cargo update && cargo build"
+  linking_errors: "Check system dependencies are installed"
+  feature_conflicts: "Verify feature flags are compatible"
+  workspace_issues: "Ensure consistent dependency versions"
+
+runtime_issues:
+  connection_problems: "Check firewall and network settings"
+  theme_not_applying: "Delete saved-state.json and restart"
+  layout_corruption: "Reset to default layout in settings"
+  performance_degradation: "Clear cached data and restart"
+
+development_issues:
+  ide_not_working: "Restart rust-analyzer language server"
+  tests_failing: "Run cargo clean before cargo test"
+  formatting_conflicts: "Run cargo fmt before committing"
+  clippy_warnings: "Address warnings before submitting PR"
+
+## Resource Limits
+
+recommended_specs:
+  minimum:
+    ram: "4GB"
+    cpu: "Dual-core 2GHz"
+    storage: "100MB"
+    network: "Broadband internet"
+  recommended:
+    ram: "8GB or more"
+    cpu: "Quad-core 3GHz or better"
+    storage: "1GB free space"
+    network: "Stable broadband with low latency"
+
+application_limits:
+  max_memory: "500MB default limit (configurable)"
+  max_data_points: "10,000 per chart (configurable)"
+  connection_timeout: "30 seconds"
+  reconnection_attempts: "10 attempts with exponential backoff"
+  cache_duration: "7 days for historical data"
+  auto_save_interval: "30 seconds"
+
+## Best Practices Summary
+
+code_quality:
+  - "Use cargo fmt and cargo clippy consistently"
+  - "Write comprehensive unit tests for core logic"
+  - "Handle all error cases gracefully"
+  - "Document public APIs and complex algorithms"
+  - "Follow Rust naming conventions and idioms"
+
+architecture:
+  - "Maintain separation between GUI, data, and exchange layers"
+  - "Use Iced's message-driven architecture correctly"
+  - "Keep real-time data processing efficient"
+  - "Design for multi-exchange support from the start"
+  - "Make components testable and modular"
+
+performance:
+  - "Profile before optimizing"
+  - "Use appropriate data structures for the use case"
+  - "Implement proper memory management and cleanup"
+  - "Design for smooth real-time updates"
+  - "Consider cross-platform performance differences"
+
+user_experience:
+  - "Provide clear error messages and recovery options"
+  - "Make the UI responsive and intuitive"
+  - "Support customization without overwhelming users"
+  - "Ensure data persistence works reliably"
+  - "Test with real market conditions"
+
+This quick reference provides essential information for rapid development and troubleshooting in the Flowsurface codebase.

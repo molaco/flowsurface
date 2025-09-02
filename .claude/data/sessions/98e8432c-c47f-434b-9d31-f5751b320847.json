@@ -1,0 +1,6 @@
+{
+  "session_id": "98e8432c-c47f-434b-9d31-f5751b320847",
+  "prompts": [
+    "/main current footprint is not working revise current implementation @VOLUME_PROFILE_ARCHITECTURE.md @VOLUME_PROFILE_TESTING_SUMMARY.md @IMPLEMENTATION_SUMMARY.md @hyper_trade/web/FOOTPRINT_README.md and call each corresponding agent with their implementation plan in @SPEC/ to revise their part."
+  ]
+}

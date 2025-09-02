@@ -1,0 +1,9 @@
+{
+  "session_id": "ae2aef52-8f60-4c40-be10-858d619b513e",
+  "prompts": [
+    "lets do a very simple promp to see if my audio is working. dont read any files or anything just answer: \"yes, sir\" and end.",
+    "are you able to do elevenlabs audio play on your own? if yes play \"susi baka\"",
+    "what is the config issue?",
+    "could you do use something other than elevenlabs play function?"
+  ]
+}

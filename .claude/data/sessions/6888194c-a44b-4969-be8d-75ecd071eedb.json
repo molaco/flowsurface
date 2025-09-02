@@ -1,0 +1,8 @@
+{
+  "session_id": "6888194c-a44b-4969-be8d-75ecd071eedb",
+  "prompts": [
+    "are the agent context docs passed to you as context?",
+    "what about yaml files?",
+    "how is implementation.yaml passed to you?"
+  ]
+}

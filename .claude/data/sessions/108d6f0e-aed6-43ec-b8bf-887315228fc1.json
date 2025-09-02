@@ -1,0 +1,7 @@
+{
+  "session_id": "108d6f0e-aed6-43ec-b8bf-887315228fc1",
+  "prompts": [
+    "my volume footprint chart its not looking good. it should be just like a candle stick chart but at the right of each candles stick have a volume histogram where each volume bar correspond to a small price range within the candle opentime and close time perpendicular to the candle. it should be like a small histogram with the x axis parallel to the candle axis. the chart should look like @pics/b-shaped-profile-footprint-pattern.png.webp  and the candle should look like @pics/profile_footprint.png ",
+    "there are no candles. the timestamps dont correspond. there are no live updates. theres not enough data. the price range does not correspon."
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "session_id": "1bbfc73a-fcfb-4da3-bc55-e2c6dc647898",
+  "prompts": [
+    "can u use my elevenlabas api to get a list of aviable voices curl https://api.elevenlabs.io/v2/voices \\\n\n     -H \"xi-api-key: xi-api-key\""
+  ]
+}

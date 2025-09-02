@@ -1,0 +1,7 @@
+{
+  "session_id": "4d937793-cf57-451e-a286-ed2809a68a61",
+  "prompts": [
+    "call the front end agent and ask him to quit so i can test my on sub agent stop audio hook",
+    "can you make it so that the landing page updates every second?"
+  ]
+}

@@ -1,0 +1,119 @@
+---
+trigger: --documentation
+name: documentation
+description: Documentation workflow optimized for agent-focused documentation
+complexity: simple
+phases: [analyze, create, validate]
+---
+
+# Documentation Workflow
+# Process for agent-optimized documentation generation and maintenance
+
+analyze:
+  description: "Analyze documentation requirements"
+  steps:
+    - step_1:
+        name: "validate_flags"
+        action: "validate flag combinations and determine operation"
+        mutually_exclusive: [["--generate", "--update", "--audit", "--sync"]]
+        output: "validated_operation"
+    
+    - step_2:
+        name: "detect_documentation_needs"
+        action: "analyze what documentation needs to be created or updated"
+        focus: ["documentation_type", "target_files", "scope", "existing_docs"]
+        auto_detect: "if no flags provided, suggest appropriate action"
+        output: "task_understanding"
+
+create:
+  description: "Create or update documentation"
+  steps:
+    - step_3:
+        name: "gather_context"
+        action: "collect information from codebase based on documentation type"
+        agents_if_needed:
+          backend_developer: "for API implementation details and WebSocket protocols"
+          database_architect: "for schema documentation and data flow"
+          frontend_developer: "for UI component docs and client integration"
+          architect: "for system design and architecture overviews"
+          github_agent: "for repository structure and GitHub integration docs"
+        conditional_mapping:
+          "--api": ["backend_developer", "database_architect"]
+          "--technical": ["architect", "backend_developer", "database_architect"]
+          "--user": ["frontend_developer", "backend_developer"]
+          "--project": ["architect", "github_agent"]
+          "--agent-context": ["architect", "backend_developer", "frontend_developer"]
+        output: "enriched_context"
+    
+    - step_4:
+        name: "delegate_to_documentation_agent"
+        action: "delegate to documentation agent to handle the task"
+        agent: "documentation"
+        flags: ["documentation_type_flag", "operation_flag", "format_flag"]
+        input: ["task_understanding", "enriched_context"]
+
+validate:
+  description: "Validate documentation quality and completeness"
+  steps:
+    - step_5:
+        name: "validate_output"
+        action: "comprehensive multi-agent validation"
+        conditional: "if --validate flag provided"
+        validation_agents:
+          reviewer: "code quality assessment and documentation review"
+          validator: "functional validation of code examples and data integrity"
+          tester: "test example validation and completeness checking"
+        checks:
+          - "completeness: all required sections present"
+          - "accuracy: code examples work and compile"
+          - "consistency: follows project patterns and style"
+          - "clarity: documentation is clear and actionable"
+          - "coverage: all features adequately documented"
+        output: "validation_report"
+
+# Workflow Configuration
+workflow_meta:
+  total_steps: 5
+  
+  documentation_types: 
+    - "--api": "API endpoints and WebSocket protocols"
+    - "--user": "User guides and tutorials"
+    - "--technical": "Architecture and system design"
+    - "--maintenance": "Changelogs and troubleshooting"
+    - "--project": "README and setup guides"
+    - "--agent-context": "Agent-optimized documentation (file maps, patterns)"
+  
+  operation_modes:
+    - "--generate": "Create new documentation"
+    - "--update": "Update existing documentation"
+    - "--audit": "Check documentation coverage"
+    - "--sync": "Synchronize docs with code changes"
+    - "--auto": "Auto-detect needed operation"
+  
+  format_options:
+    - "--format yaml": "YAML structured output for agents"
+    - "--format markdown": "Markdown for human reading"
+    - "--format inline": "Inline code comments"
+  
+  additional_flags:
+    - "--validate": "Validate examples and accuracy"
+    - "--with-examples": "Include working code examples"
+    - "--coverage": "Report documentation coverage"
+    - "--diff": "Only update changed sections"
+  
+  primary_agent:
+    documentation: "Specialized documentation agent for all documentation tasks"
+  
+  supporting_agents:
+    backend_developer: "API implementation details and WebSocket protocols"
+    database_architect: "Schema documentation and data flow patterns"
+    frontend_developer: "UI component documentation and client integration"
+    architect: "System design documentation and architecture overviews"
+    github_agent: "Repository structure and GitHub integration documentation"
+    reviewer: "Documentation quality assessment and code review"
+    validator: "Code example validation and data integrity verification"
+    tester: "Test example validation and documentation completeness"
+  
+  mcp_integrations:
+    serena: "Code analysis for documentation extraction"
+    context7: "Documentation patterns and examples"

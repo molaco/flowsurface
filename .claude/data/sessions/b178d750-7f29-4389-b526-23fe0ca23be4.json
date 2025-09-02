@@ -1,0 +1,6 @@
+{
+  "session_id": "b178d750-7f29-4389-b526-23fe0ca23be4",
+  "prompts": [
+    "can you make the landing page so that we just have a heading with the name hypertrade and then a list of the tracked pair with their prices next to the name and have them be page wide rows? also instead of a textbox for adding other pairs just put and add button at the bottom that opens a list of all the untracked pairs."
+  ]
+}

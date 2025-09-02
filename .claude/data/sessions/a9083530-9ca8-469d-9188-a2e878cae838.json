@@ -1,0 +1,6 @@
+{
+  "session_id": "a9083530-9ca8-469d-9188-a2e878cae838",
+  "prompts": [
+    "call the documentation agent to generate documentation of @hyperliquid-rust-sdk/ in hyperliquid-rust-sdk/docs dir. i want a very comprehensive documentation"
+  ]
+}

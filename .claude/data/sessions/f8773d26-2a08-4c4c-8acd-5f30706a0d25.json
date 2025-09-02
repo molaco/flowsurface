@@ -1,0 +1,6 @@
+{
+  "session_id": "f8773d26-2a08-4c4c-8acd-5f30706a0d25",
+  "prompts": [
+    "go to https://coinmarketcap.com/ and take screenshot with playwright then write PLAN.md of how to make my landing page look like that. I want it to be very simple for now focus on simple similar header with just the text \"HyperTrade\" and nothing more but resembling coinmarketcap.com also just focus on top coin list specifically coin rows. remember to be concise. the design must be of simple implementation. avoid anything we already not have like price change 1h%, market cap, circulating supply, filters, trending coins, dexcan trading, fear & greed, ..."
+  ]
+}

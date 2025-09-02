@@ -1,0 +1,12 @@
+{
+  "session_id": "deb9d6cb-1a6f-48e5-a1df-b78a576c72c7",
+  "prompts": [
+    "could you compare my statusline token log in @.claude/hooks/statusline.py with the logic in github ccusage?",
+    "looking at my code repo do you think there is sth i should add to .cluadeignore to reduce cache?? just tell me dont change nothing",
+    "how does this count towards my claude usage limit? In:239 | Out:225 | C+:54,108 | C:2,399,295",
+    "what is an approximate tokan count limit for claude code sonnet in one time window of 5 hours?",
+    "i mean thats just this chat. for the session i am at about this much \u2502 2025-08-20               \u2502 - sonnet-4                            \u2502       283 \u2502     1,141 \u2502       476,385 \u2502   6,511,173 \u2502     6,988,982 \u2502       $3.76",
+    "what is this chat session id?",
+    "thats previous session. i want current chat id"
+  ]
+}

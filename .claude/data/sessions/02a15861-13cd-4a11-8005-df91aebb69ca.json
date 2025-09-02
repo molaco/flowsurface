@@ -1,0 +1,7 @@
+{
+  "session_id": "02a15861-13cd-4a11-8005-df91aebb69ca",
+  "prompts": [
+    "could you update @.claude/workflow/super_fast.yaml to run agents in parallel?",
+    "it should run in parallel different agents. "
+  ]
+}

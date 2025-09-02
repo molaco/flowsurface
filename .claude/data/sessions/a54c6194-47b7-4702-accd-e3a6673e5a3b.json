@@ -1,0 +1,9 @@
+{
+  "session_id": "a54c6194-47b7-4702-accd-e3a6673e5a3b",
+  "prompts": [
+    "can you find a good way to separate my candles more in @hyper_trade/web/footprint.html @hyper_trade/web/js/footprint.js  ???",
+    "no this does not work. i dont want to change the number of candles or the profile width. this makes no sense. is there any way to change the width of the candle?",
+    "this is no good. i dont want to change the zoom. i need real space",
+    "this is no good. revert changes. set custom width between vertical grids in Lightweight Chart"
+  ]
+}

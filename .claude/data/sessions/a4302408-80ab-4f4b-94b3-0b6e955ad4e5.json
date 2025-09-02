@@ -1,0 +1,12 @@
+{
+  "session_id": "a4302408-80ab-4f4b-94b3-0b6e955ad4e5",
+  "prompts": [
+    "/main commit changes",
+    "can you tell me why my main agent is not writting build and plan reviews?",
+    "should i create a hook to pass session-id to the agents?",
+    "just tell me. how would you impplement this hook?",
+    "can you check we are no doing that already?",
+    "do i need to pass the session_id to sub-agents too?",
+    "what is this .session dir? did we create this with the on user prompt changes?"
+  ]
+}

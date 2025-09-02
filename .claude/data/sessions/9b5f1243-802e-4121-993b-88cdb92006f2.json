@@ -1,0 +1,12 @@
+{
+  "session_id": "9b5f1243-802e-4121-993b-88cdb92006f2",
+  "prompts": [
+    "@.mcp.json @nix/ could you check if everything is properly configured for elevenlabs mcp?",
+    "mcp-serves-nix does not include elevenlabs mcp maybe i need extra pkg or sth. the mcp.json is dynamically generated.",
+    "how do i run it?",
+    "we already in nix develop",
+    "//mcp ",
+    "k",
+    "/agent-workflow "
+  ]
+}

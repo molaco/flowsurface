@@ -1,0 +1,7 @@
+{
+  "session_id": "f903c71a-704b-4aac-938a-f7dcf51b9af2",
+  "prompts": [
+    "pls modify git commit workflow to only have one phase and only use one sub-agent reviewer.",
+    "it should not take that long ony 1-2  minutes"
+  ]
+}

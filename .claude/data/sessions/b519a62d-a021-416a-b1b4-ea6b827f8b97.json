@@ -1,0 +1,6 @@
+{
+  "session_id": "b519a62d-a021-416a-b1b4-ea6b827f8b97",
+  "prompts": [
+    "use @NEW_PLAN.md to create @FINAL_PLAN.md a plan that  improves on @PLAN.md ."
+  ]
+}

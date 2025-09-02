@@ -1,0 +1,8 @@
+{
+  "session_id": "5adee363-0c33-4a6f-8ea4-53df36a257e2",
+  "prompts": [
+    "analyze @CONCERNS.md ",
+    "as adversary tell me if these are real issues? why  can we  not use prices struct for everything? (adversary but not dumb if sth is wrong or bad just say so)",
+    "replace  the existing CONCERNS.md file with the new analysis. also create PLAN.md an implementation plan of how to implement the real issue and explain why "
+  ]
+}

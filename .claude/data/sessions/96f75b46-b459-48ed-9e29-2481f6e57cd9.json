@@ -1,0 +1,7 @@
+{
+  "session_id": "96f75b46-b459-48ed-9e29-2481f6e57cd9",
+  "prompts": [
+    "in @hyper_trade/web/footprint.html i dont see any data",
+    "no way, we have trade data already in start_direct_trades_stream in @hyper_trade/src/handlers/live_candles.rs "
+  ]
+}

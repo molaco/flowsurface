@@ -1,0 +1,9 @@
+{
+  "session_id": "5ccf9734-8a34-4cf6-a52f-af229f454b79",
+  "prompts": [
+    "\u007f/documentation use @.claude/workflows/documentation.yaml to implement @PLAN.md ",
+    "i tried to implement the plan but only got @AGENT_CONTEXT.md and @docs/agents/ is this okey?",
+    "arent they already populated?",
+    "wouldnt it be better for my documentation command work with my documentation workflow like the main command does?"
+  ]
+}

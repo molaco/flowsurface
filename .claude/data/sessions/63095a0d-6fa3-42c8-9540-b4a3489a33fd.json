@@ -1,0 +1,7 @@
+{
+  "session_id": "63095a0d-6fa3-42c8-9540-b4a3489a33fd",
+  "prompts": [
+    "could you @.claude/workflows/super_fast.yaml update my workflow to better reflect what i want. given a implementation plan i want the main againt to differentiate the diferent steps and task an delegate to appropiate sub agents (in parallel if possible)",
+    "i want also to call different sub-agents for different step tasks even if categorized for same category"
+  ]
+}

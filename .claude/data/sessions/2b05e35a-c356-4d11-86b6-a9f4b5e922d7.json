@@ -1,0 +1,6 @@
+{
+  "session_id": "2b05e35a-c356-4d11-86b6-a9f4b5e922d7",
+  "prompts": [
+    "can you identify price animation in landing page? when price go up whole column box gos grean and when price go down it goes red. i tried to replicate this in volume and 24h change but i got it wrong. Actually, even when there is no price change the column row part glows with anather shade of grey. "
+  ]
+}

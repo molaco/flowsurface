@@ -1,0 +1,13 @@
+{
+  "session_id": "b82fe908-53ba-4d03-8e45-a01c75b367dd",
+  "prompts": [
+    "hello how many tokens?",
+    "about @.claude/hooks/statusline.py ",
+    "can we add some debugging because i dont se nonthign",
+    "ok. that is pretty good. however i need to know the sum of each token usage entry in the transcript. are we doing that or jsut getting the last one or sth?",
+    "is this the correct way of doing it? i mean 4 token input per chat seems a little low. and i dont know if the cache tokens should add up or not",
+    "i want to differentite in the status line (input, output, cache create, cache read)",
+    "are u sure this is correct? it should be sth like : 2025-08-20               \u2502 - sonnet-4                            \u2502       108 \u2502       707 \u2502       353,040 \u2502   3,608,253 \u2502     3,962,108",
+    "analyze if the sum of tokens is working correctly "
+  ]
+}

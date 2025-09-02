@@ -1,0 +1,7 @@
+{
+  "session_id": "8f99c284-e85a-49d3-9fe6-81961c4b24d5",
+  "prompts": [
+    "i need better spacing in @hyper_trade/web/footprint.html i want nice space between each pair of candle and volume histogram. here is nice example image @pics/volume_profile_footprint_chart.jpg (the candle is thinner and you can see the histogram without problem. use playwright to see current and to iterate until nice",
+    "the current spacing methods or anything you did dont work. please use novel techniques and search in the web for how to increase spacing in lightweight charts. "
+  ]
+}

@@ -1,0 +1,6 @@
+{
+  "session_id": "ea68e298-fc94-4f3e-b0bc-2326ea77a239",
+  "prompts": [
+    "/main @IMPL.md --fast"
+  ]
+}
