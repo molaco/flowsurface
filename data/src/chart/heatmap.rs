@@ -160,15 +160,23 @@ impl HistoricalDepth {
         }
     }
 
-    pub fn insert_latest_depth(&mut self, depth: &Depth, time: u64) {
-        let tick_size = self.tick_size;
+    pub fn insert_latest_depth(&mut self, depth: &Depth, _time: u64) {
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let tick_size = self.tick_size;
 
-        self.process_side(&depth.bids, time, true, |price| {
-            ((price * (1.0 / tick_size)).floor()) * tick_size
-        });
-        self.process_side(&depth.asks, time, false, |price| {
-            ((price * (1.0 / tick_size)).ceil()) * tick_size
-        });
+            self.process_side(&depth.bids, _time, true, |price| {
+                ((price * (1.0 / tick_size)).floor()) * tick_size
+            });
+            self.process_side(&depth.asks, _time, false, |price| {
+                ((price * (1.0 / tick_size)).ceil()) * tick_size
+            });
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            // Depth functionality disabled for WASM
+            let _ = depth;
+        }
     }
 
     fn process_side<F>(

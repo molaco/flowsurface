@@ -1,11 +1,416 @@
+#[cfg(not(target_arch = "wasm32"))]
 pub mod adapter;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod connect;
+#[cfg(not(target_arch = "wasm32"))]
 pub mod depth;
 pub mod fetcher;
+#[cfg(not(target_arch = "wasm32"))]
 mod limiter;
 
+#[cfg(not(target_arch = "wasm32"))]
 pub use adapter::Event;
+#[cfg(target_arch = "wasm32")]
+pub use adapter::Event;
+#[cfg(not(target_arch = "wasm32"))]
 use adapter::{Exchange, MarketKind, StreamKind};
+
+// WASM-compatible minimal types
+
+#[cfg(target_arch = "wasm32")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize, enum_map::Enum)]
+pub enum Exchange {
+    BinanceLinear,
+    BinanceInverse,
+    BinanceSpot,
+    BybitLinear,
+    BybitInverse,
+    BybitSpot,
+    HyperliquidLinear,
+    HyperliquidSpot,
+}
+
+#[cfg(target_arch = "wasm32")]
+impl Exchange {
+    pub const ALL: [Exchange; 8] = [
+        Exchange::BinanceLinear,
+        Exchange::BinanceInverse,
+        Exchange::BinanceSpot,
+        Exchange::BybitLinear,
+        Exchange::BybitInverse,
+        Exchange::BybitSpot,
+        Exchange::HyperliquidLinear,
+        Exchange::HyperliquidSpot,
+    ];
+
+    pub fn market_type(self) -> MarketKind {
+        match self {
+            Exchange::BinanceLinear | Exchange::BybitLinear | Exchange::HyperliquidLinear => MarketKind::LinearPerps,
+            Exchange::BinanceInverse | Exchange::BybitInverse => MarketKind::InversePerps,
+            Exchange::BinanceSpot | Exchange::BybitSpot | Exchange::HyperliquidSpot => MarketKind::Spot,
+        }
+    }
+
+    pub fn is_depth_client_aggr(&self) -> bool {
+        matches!(
+            self,
+            Exchange::BinanceLinear
+                | Exchange::BinanceInverse
+                | Exchange::BybitLinear
+                | Exchange::BybitInverse
+                | Exchange::BinanceSpot
+                | Exchange::BybitSpot
+        )
+    }
+
+    pub fn supports_heatmap_timeframe(&self, tf: Timeframe) -> bool {
+        match self {
+            Exchange::BybitSpot => tf != Timeframe::MS100,
+            Exchange::HyperliquidLinear | Exchange::HyperliquidSpot => {
+                tf != Timeframe::MS100 && tf != Timeframe::MS200
+            }
+            _ => true,
+        }
+    }
+
+    pub fn is_perps(&self) -> bool {
+        matches!(
+            self,
+            Exchange::BinanceLinear
+                | Exchange::BinanceInverse
+                | Exchange::BybitLinear
+                | Exchange::BybitInverse
+                | Exchange::HyperliquidLinear
+        )
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+impl std::fmt::Display for Exchange {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let name = match self {
+            Exchange::BinanceLinear => "BinanceLinear",
+            Exchange::BinanceInverse => "BinanceInverse",
+            Exchange::BinanceSpot => "BinanceSpot",
+            Exchange::BybitLinear => "BybitLinear",
+            Exchange::BybitInverse => "BybitInverse",
+            Exchange::BybitSpot => "BybitSpot",
+            Exchange::HyperliquidLinear => "HyperliquidLinear",
+            Exchange::HyperliquidSpot => "HyperliquidSpot",
+        };
+        write!(f, "{}", name)
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
+pub enum MarketKind {
+    LinearPerps,
+    InversePerps,
+    Spot,
+}
+
+#[cfg(target_arch = "wasm32")]
+impl MarketKind {
+    pub const ALL: [MarketKind; 3] = [MarketKind::LinearPerps, MarketKind::InversePerps, MarketKind::Spot];
+    
+    pub fn qty_in_quote_value(&self, _qty: f32, _price: f32, _size_in_quote_currency: bool) -> f32 {
+        0.0  // Stub implementation for WASM
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+impl std::fmt::Display for MarketKind {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                MarketKind::Spot => "Spot",
+                MarketKind::LinearPerps => "Linear",
+                MarketKind::InversePerps => "Inverse",
+            }
+        )
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
+pub enum StreamKind {
+    Kline {
+        ticker: Ticker,
+        timeframe: Timeframe,
+    },
+    DepthAndTrades {
+        ticker: Ticker,
+        #[serde(default = "default_depth_aggr")]
+        depth_aggr: StreamTicksize,
+    },
+}
+
+#[cfg(target_arch = "wasm32")]
+impl StreamKind {
+    pub fn ticker(&self) -> Ticker {
+        match self {
+            StreamKind::Kline { ticker, .. } | StreamKind::DepthAndTrades { ticker, .. } => *ticker,
+        }
+    }
+
+    pub fn as_depth_stream(&self) -> Option<(Ticker, StreamTicksize)> {
+        match self {
+            StreamKind::DepthAndTrades { ticker, depth_aggr } => Some((*ticker, *depth_aggr)),
+            _ => None,
+        }
+    }
+
+    pub fn as_kline_stream(&self) -> Option<(Ticker, Timeframe)> {
+        match self {
+            StreamKind::Kline { ticker, timeframe } => Some((*ticker, *timeframe)),
+            _ => None,
+        }
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
+pub enum StreamTicksize {
+    ServerSide(TickMultiplier),
+    #[default]
+    Client,
+}
+
+#[cfg(target_arch = "wasm32")]
+fn default_depth_aggr() -> StreamTicksize {
+    StreamTicksize::Client
+}
+
+// supports_heatmap_timeframe is implemented in the wasm Exchange impl above
+
+// WASM stub for depth module
+#[cfg(target_arch = "wasm32")]
+pub mod depth {
+    use serde::{Deserialize, Serialize};
+    
+    #[derive(Debug, Clone, Deserialize, Serialize)]
+    pub struct Depth {
+        // For WASM, simplify to empty structs since we won't use the actual depth functionality
+        pub bids: Vec<(f32, f32)>,
+        pub asks: Vec<(f32, f32)>,
+    }
+
+    impl Depth {
+        pub fn mid_price(&self) -> Option<f32> {
+            let best_bid = self.bids.first().map(|(p, _)| *p)?;
+            let best_ask = self.asks.first().map(|(p, _)| *p)?;
+            Some((best_bid + best_ask) / 2.0)
+        }
+    }
+}
+
+// fetcher is available on all targets
+
+// WASM stub for adapter module
+#[cfg(target_arch = "wasm32")]  
+pub mod adapter {
+    pub use super::{
+        depth::Depth, Exchange, Kline, MarketKind, StreamKind, StreamTicksize, TickMultiplier,
+        Ticker, TickerInfo, TickerStats, Timeframe, Trade,
+    };
+    use enum_map::EnumMap;
+    use serde::{Deserialize, Serialize};
+    use std::collections::HashMap;
+    
+    #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
+    pub enum ExchangeInclusive {
+        Bybit,
+        Binance,
+        Hyperliquid,
+    }
+    
+    impl ExchangeInclusive {
+        pub const ALL: [ExchangeInclusive; 3] = [
+            ExchangeInclusive::Bybit,
+            ExchangeInclusive::Binance,
+            ExchangeInclusive::Hyperliquid,
+        ];
+
+        pub fn of(ex: Exchange) -> Self {
+            match ex {
+                Exchange::BybitLinear | Exchange::BybitInverse | Exchange::BybitSpot => Self::Bybit,
+                Exchange::BinanceLinear | Exchange::BinanceInverse | Exchange::BinanceSpot => Self::Binance,
+                Exchange::HyperliquidLinear | Exchange::HyperliquidSpot => Self::Hyperliquid,
+            }
+        }
+    }
+
+    #[derive(thiserror::Error, Debug, Clone)]
+    pub enum AdapterError {
+        #[error("Unsupported in WASM web build")]
+        Unsupported,
+        #[error("Invalid request: {0}")]
+        InvalidRequest(String),
+    }
+
+    #[derive(Debug, Clone, Default)]
+    pub struct StreamSpecs {
+        pub depth: Vec<(Ticker, StreamTicksize)>,
+        pub kline: Vec<(Ticker, Timeframe)>,
+    }
+
+    #[derive(Debug, Default)]
+    pub struct UniqueStreams {
+        streams: EnumMap<Exchange, Option<HashMap<Ticker, std::collections::HashSet<super::StreamKind>>>>,
+        specs: EnumMap<Exchange, Option<StreamSpecs>>,
+    }
+
+    impl UniqueStreams {
+        pub fn from<'a>(streams: impl Iterator<Item = &'a super::StreamKind>) -> Self {
+            let mut unique_streams = UniqueStreams::default();
+            for &stream in streams {
+                unique_streams.add(stream);
+            }
+            unique_streams
+        }
+
+        pub fn add(&mut self, stream: super::StreamKind) {
+            let (exchange, ticker) = match stream {
+                super::StreamKind::Kline { ticker, .. }
+                | super::StreamKind::DepthAndTrades { ticker, .. } => (ticker.exchange, ticker),
+            };
+
+            self.streams[exchange]
+                .get_or_insert_with(HashMap::default)
+                .entry(ticker)
+                .or_default()
+                .insert(stream);
+
+            self.update_specs_for_exchange(exchange);
+        }
+
+        pub fn extend<'a>(&mut self, streams: impl IntoIterator<Item = &'a super::StreamKind>) {
+            for &stream in streams {
+                self.add(stream);
+            }
+        }
+
+        fn update_specs_for_exchange(&mut self, exchange: Exchange) {
+            let depth_streams = self.depth_streams(Some(exchange));
+            let kline_streams = self.kline_streams(Some(exchange));
+
+            self.specs[exchange] = Some(StreamSpecs {
+                depth: depth_streams,
+                kline: kline_streams,
+            });
+        }
+
+        pub fn depth_streams(
+            &self,
+            exchange_filter: Option<Exchange>,
+        ) -> Vec<(Ticker, StreamTicksize)> {
+            self.streams(exchange_filter, |_, stream| stream.as_depth_stream())
+        }
+
+        pub fn kline_streams(
+            &self,
+            exchange_filter: Option<Exchange>,
+        ) -> Vec<(Ticker, Timeframe)> {
+            self.streams(exchange_filter, |_, stream| stream.as_kline_stream())
+        }
+
+        fn streams<T, F>(&self, exchange_filter: Option<Exchange>, stream_extractor: F) -> Vec<T>
+        where
+            F: Fn(Exchange, &super::StreamKind) -> Option<T>,
+        {
+            let f = &stream_extractor;
+
+            let per_exchange = |exchange| {
+                self.streams[exchange]
+                    .as_ref()
+                    .into_iter()
+                    .flat_map(|ticker_map| ticker_map.values().flatten())
+                    .filter_map(move |stream| f(exchange, stream))
+            };
+
+            match exchange_filter {
+                Some(exchange) => per_exchange(exchange).collect(),
+                None => Exchange::ALL.into_iter().flat_map(per_exchange).collect(),
+            }
+        }
+
+        pub fn combined_used(&self) -> impl Iterator<Item = (Exchange, &StreamSpecs)> {
+            self.specs
+                .iter()
+                .filter_map(|(exchange, specs)| specs.as_ref().map(|stream| (exchange, stream)))
+        }
+
+        pub fn combined(&self) -> &enum_map::EnumMap<Exchange, Option<StreamSpecs>> {
+            &self.specs
+        }
+    }
+
+    #[derive(Debug, Clone)]
+    pub enum Event {
+        Connected(Exchange),
+        Disconnected(Exchange, String),
+        DepthReceived(super::StreamKind, u64, Depth, Box<[Trade]>),
+        KlineReceived(super::StreamKind, Kline),
+    }
+
+    #[derive(Debug, Clone, Hash)]
+    pub struct StreamConfig<I> {
+        pub id: I,
+        pub market_type: MarketKind,
+        pub tick_mltp: Option<TickMultiplier>,
+    }
+
+    impl<I> StreamConfig<I> {
+        pub fn new(id: I, exchange: Exchange, tick_mltp: Option<TickMultiplier>) -> Self {
+            let market_type = exchange.market_type();
+            Self {
+                id,
+                market_type,
+                tick_mltp,
+            }
+        }
+    }
+
+    pub async fn fetch_ticker_info(
+        _exchange: Exchange,
+    ) -> Result<HashMap<Ticker, Option<TickerInfo>>, AdapterError> {
+        Ok(HashMap::new())
+    }
+
+    pub async fn fetch_ticker_prices(
+        _exchange: Exchange,
+    ) -> Result<HashMap<Ticker, TickerStats>, AdapterError> {
+        Ok(HashMap::new())
+    }
+
+    pub async fn fetch_klines(
+        _exchange: Exchange,
+        _ticker: Ticker,
+        _timeframe: Timeframe,
+        _range: Option<(u64, u64)>,
+    ) -> Result<Vec<Kline>, AdapterError> {
+        Ok(Vec::new())
+    }
+
+    pub async fn fetch_open_interest(
+        _ticker: Ticker,
+        _timeframe: Timeframe,
+        _range: Option<(u64, u64)>,
+    ) -> Result<Vec<super::OpenInterest>, AdapterError> {
+        Ok(Vec::new())
+    }
+
+    pub mod hyperliquid {
+        pub fn allowed_multipliers_for_base_tick(base_ticksize: f32) -> &'static [u16] {
+            const MULTS_SAFE: &[u16] = &[1, 2, 5, 10, 100, 1000];
+            let _ = base_ticksize; // parameter unused in stub
+            MULTS_SAFE
+        }
+    }
+}
 
 use rust_decimal::{
     Decimal,

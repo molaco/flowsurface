@@ -1,0 +1,9 @@
+[target.wasm32-unknown-unknown]
+rustflags = [
+    "--cfg", "web_sys_unstable_apis",
+    "--cfg", "getrandom_js",
+    "--cfg", "wasm_js"
+]
+
+[env]
+RUSTFLAGS = { value = "--cfg=web_sys_unstable_apis --cfg=getrandom_js --cfg=wasm_js", condition = { target = "wasm32-unknown-unknown" } }

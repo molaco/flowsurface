@@ -19,6 +19,9 @@ pub use config::theme::Theme;
 pub use config::timezone::UserTimezone;
 
 use ::log::{error, info, warn};
+
+#[cfg(not(target_arch = "wasm32"))]
+use open;
 pub use layout::{Dashboard, Layout, Pane};
 
 pub const SAVED_STATE_PATH: &str = "saved-state.json";
@@ -32,78 +35,137 @@ pub enum InternalError {
 }
 
 pub fn write_json_to_file(json: &str, file_name: &str) -> std::io::Result<()> {
-    let path = data_path(Some(file_name));
-    let mut file = File::create(path)?;
-    file.write_all(json.as_bytes())?;
-    Ok(())
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let path = data_path(Some(file_name));
+        let mut file = File::create(path)?;
+        file.write_all(json.as_bytes())?;
+        Ok(())
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        use web_sys::Storage;
+        let window = web_sys::window().ok_or_else(|| {
+            std::io::Error::new(std::io::ErrorKind::Other, "No window available")
+        })?;
+        let storage = window.local_storage().map_err(|_| {
+            std::io::Error::new(std::io::ErrorKind::Other, "Failed to get localStorage")
+        })?.ok_or_else(|| {
+            std::io::Error::new(std::io::ErrorKind::Other, "localStorage not available")
+        })?;
+        
+        storage.set_item(file_name, json).map_err(|_| {
+            std::io::Error::new(std::io::ErrorKind::Other, "Failed to write to localStorage")
+        })?;
+        Ok(())
+    }
 }
 
 pub fn read_from_file(file_name: &str) -> Result<State, Box<dyn std::error::Error>> {
-    let path = data_path(Some(file_name));
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let path = data_path(Some(file_name));
 
-    let file_open_result = File::open(&path);
-    let mut file = match file_open_result {
-        Ok(file) => file,
-        Err(e) => return Err(Box::new(e)),
-    };
+        let file_open_result = File::open(&path);
+        let mut file = match file_open_result {
+            Ok(file) => file,
+            Err(e) => return Err(Box::new(e)),
+        };
 
-    let mut contents = String::new();
-    if let Err(e) = file.read_to_string(&mut contents) {
-        return Err(Box::new(e));
-    }
+        let mut contents = String::new();
+        if let Err(e) = file.read_to_string(&mut contents) {
+            return Err(Box::new(e));
+        }
 
-    match serde_json::from_str(&contents) {
-        Ok(state) => Ok(state),
-        Err(e) => {
-            // If parsing fails, backup the file
-            drop(file); // Close the file before renaming
+        match serde_json::from_str(&contents) {
+            Ok(state) => Ok(state),
+            Err(e) => {
+                // If parsing fails, backup the file
+                drop(file); // Close the file before renaming
 
-            // Create backup file with different name to prevent overwriting it
-            let backup_file_name = if let Some(pos) = file_name.rfind('.') {
-                format!("{}_old{}", &file_name[..pos], &file_name[pos..])
-            } else {
-                format!("{}_old", file_name)
-            };
+                // Create backup file with different name to prevent overwriting it
+                let backup_file_name = if let Some(pos) = file_name.rfind('.') {
+                    format!("{}_old{}", &file_name[..pos], &file_name[pos..])
+                } else {
+                    format!("{}_old", file_name)
+                };
 
-            let backup_path = data_path(Some(&backup_file_name));
+                let backup_path = data_path(Some(&backup_file_name));
 
-            if let Err(rename_err) = std::fs::rename(&path, &backup_path) {
-                warn!(
-                    "Failed to backup corrupted state file '{}' to '{}': {}",
-                    path.display(),
-                    backup_path.display(),
-                    rename_err
-                );
-            } else {
-                info!(
-                    "Backed up corrupted state file to '{}'. It can be restored manually.",
-                    backup_path.display()
-                );
+                if let Err(rename_err) = std::fs::rename(&path, &backup_path) {
+                    warn!(
+                        "Failed to backup corrupted state file '{}' to '{}': {}",
+                        path.display(),
+                        backup_path.display(),
+                        rename_err
+                    );
+                } else {
+                    info!(
+                        "Backed up corrupted state file to '{}'. It can be restored manually.",
+                        backup_path.display()
+                    );
+                }
+
+                Err(Box::new(e))
             }
+        }
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        use web_sys::Storage;
+        let window = web_sys::window().ok_or_else(|| {
+            std::io::Error::new(std::io::ErrorKind::Other, "No window available")
+        })?;
+        let storage = window.local_storage().map_err(|_| {
+            std::io::Error::new(std::io::ErrorKind::Other, "Failed to get localStorage")
+        })?.ok_or_else(|| {
+            std::io::Error::new(std::io::ErrorKind::Other, "localStorage not available")
+        })?;
+        
+        let contents = storage.get_item(file_name).map_err(|_| {
+            std::io::Error::new(std::io::ErrorKind::Other, "Failed to read from localStorage")
+        })?.ok_or_else(|| {
+            std::io::Error::new(std::io::ErrorKind::NotFound, "File not found in localStorage")
+        })?;
 
-            Err(Box::new(e))
+        match serde_json::from_str(&contents) {
+            Ok(state) => Ok(state),
+            Err(e) => {
+                // In web, we can't backup files, so just log the error
+                warn!("Failed to parse state from localStorage: {}", e);
+                Err(Box::new(e))
+            }
         }
     }
 }
 
 pub fn open_data_folder() -> Result<(), InternalError> {
-    let pathbuf = data_path(None);
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let pathbuf = data_path(None);
 
-    if pathbuf.exists() {
-        if let Err(err) = open::that(&pathbuf) {
-            Err(InternalError::Layout(format!(
-                "Failed to open data folder: {:?}, error: {}",
-                pathbuf, err
-            )))
+        if pathbuf.exists() {
+            if let Err(err) = open::that(&pathbuf) {
+                Err(InternalError::Layout(format!(
+                    "Failed to open data folder: {:?}, error: {}",
+                    pathbuf, err
+                )))
+            } else {
+                info!("Opened data folder: {:?}", pathbuf);
+                Ok(())
+            }
         } else {
-            info!("Opened data folder: {:?}", pathbuf);
-            Ok(())
+            Err(InternalError::Layout(format!(
+                "Data folder does not exist: {:?}",
+                pathbuf
+            )))
         }
-    } else {
-        Err(InternalError::Layout(format!(
-            "Data folder does not exist: {:?}",
-            pathbuf
-        )))
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        Err(InternalError::Layout(
+            "Opening data folder is not supported in web browser".to_string()
+        ))
     }
 }
 
@@ -174,15 +236,23 @@ fn cleanup_directory(data_path: &PathBuf) -> usize {
 }
 
 pub fn cleanup_old_market_data() -> usize {
-    let paths = ["um", "cm"].map(|market_type| {
-        data_path(Some(&format!(
-            "market_data/binance/data/futures/{}/daily/aggTrades",
-            market_type
-        )))
-    });
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        let paths = ["um", "cm"].map(|market_type| {
+            data_path(Some(&format!(
+                "market_data/binance/data/futures/{}/daily/aggTrades",
+                market_type
+            )))
+        });
 
-    let total_deleted: usize = paths.iter().map(cleanup_directory).sum();
+        let total_deleted: usize = paths.iter().map(cleanup_directory).sum();
 
-    info!("File cleanup completed. Deleted {} files", total_deleted);
-    total_deleted
+        info!("File cleanup completed. Deleted {} files", total_deleted);
+        total_deleted
+    }
+    #[cfg(target_arch = "wasm32")]
+    {
+        // No cleanup needed in web environment
+        0
+    }
 }

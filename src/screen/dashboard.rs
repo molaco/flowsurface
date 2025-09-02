@@ -16,13 +16,12 @@ use crate::{
 use data::{UserTimezone, chart::Basis, layout::WindowSpec};
 use exchange::{
     Kline, TickMultiplier, Ticker, TickerInfo, Timeframe, Trade,
-    adapter::{
-        self, AdapterError, Exchange, StreamConfig, StreamKind, StreamTicksize, UniqueStreams,
-        binance, bybit, hyperliquid,
-    },
+    adapter::{self, AdapterError, Exchange, StreamConfig, StreamKind, StreamTicksize, UniqueStreams},
     depth::Depth,
     fetcher::{FetchRange, FetchedData},
 };
+#[cfg(not(target_arch = "wasm32"))]
+use exchange::adapter::{binance, bybit, hyperliquid};
 
 use iced::{
     Element, Length, Subscription, Task, Vector,
@@ -1242,6 +1241,7 @@ impl Dashboard {
         Task::batch(tasks)
     }
 
+    #[cfg(not(target_arch = "wasm32"))]
     pub fn market_subscriptions(&self) -> Subscription<exchange::Event> {
         let unique_streams = self
             .streams
@@ -1281,6 +1281,11 @@ impl Dashboard {
             .collect::<Vec<Subscription<exchange::Event>>>();
 
         Subscription::batch(unique_streams)
+    }
+
+    #[cfg(target_arch = "wasm32")]
+    pub fn market_subscriptions(&self) -> Subscription<exchange::Event> {
+        Subscription::none()
     }
 
     fn refresh_streams(&mut self, main_window: window::Id) -> Task<Message> {
@@ -1510,6 +1515,7 @@ fn kline_fetch_task(
     update_status.chain(fetch_task)
 }
 
+#[cfg(not(target_arch = "wasm32"))]
 pub fn fetch_trades_batched(
     ticker: Ticker,
     from_time: u64,
@@ -1538,6 +1544,17 @@ pub fn fetch_trades_batched(
     })
 }
 
+#[cfg(target_arch = "wasm32")]
+pub fn fetch_trades_batched(
+    _ticker: Ticker,
+    _from_time: u64,
+    _to_time: u64,
+    _data_path: PathBuf,
+) -> impl Straw<(), Vec<Trade>, AdapterError> {
+    sipper(async move |_progress| { Ok(()) })
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 pub fn depth_subscription(
     ticker: Ticker,
     tick_mlpt: Option<TickMultiplier>,
@@ -1562,6 +1579,15 @@ pub fn depth_subscription(
     }
 }
 
+#[cfg(target_arch = "wasm32")]
+pub fn depth_subscription(
+    _ticker: Ticker,
+    _tick_mlpt: Option<TickMultiplier>,
+) -> Subscription<exchange::Event> {
+    Subscription::none()
+}
+
+#[cfg(not(target_arch = "wasm32"))]
 pub fn kline_subscription(
     exchange: Exchange,
     kline_subs: Vec<(Ticker, Timeframe)>,
@@ -1587,4 +1613,12 @@ pub fn kline_subscription(
             Subscription::run_with(config, builder)
         }
     }
+}
+
+#[cfg(target_arch = "wasm32")]
+pub fn kline_subscription(
+    _exchange: Exchange,
+    _kline_subs: Vec<(Ticker, Timeframe)>,
+) -> Subscription<exchange::Event> {
+    Subscription::none()
 }

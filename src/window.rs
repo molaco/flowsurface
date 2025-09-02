@@ -119,3 +119,11 @@ pub fn settings() -> Settings {
         ..Default::default()
     }
 }
+
+#[cfg(target_arch = "wasm32")]
+pub fn settings() -> Settings {
+    Settings {
+        min_size: None,
+        ..Default::default()
+    }
+}

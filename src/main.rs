@@ -1,4 +1,4 @@
-#![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+#![cfg_attr(all(windows, not(debug_assertions)), windows_subsystem = "windows")]
 
 mod chart;
 mod layout;
@@ -29,12 +29,20 @@ use iced::{
 };
 use std::{borrow::Cow, collections::HashMap, vec};
 
-fn main() {
-    logger::setup(cfg!(debug_assertions)).expect("Failed to initialize logger");
+fn main() -> iced::Result {
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        logger::setup(cfg!(debug_assertions)).expect("Failed to initialize logger");
+        std::thread::spawn(data::cleanup_old_market_data);
+    }
 
-    std::thread::spawn(data::cleanup_old_market_data);
+    #[cfg(target_arch = "wasm32")]
+    {
+        std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+        console_log::init_with_level(log::Level::Debug).expect("Failed to initialize logger");
+    }
 
-    let _ = iced::daemon(Flowsurface::new, Flowsurface::update, Flowsurface::view)
+    iced::daemon(Flowsurface::new, Flowsurface::update, Flowsurface::view)
         .settings(iced::Settings {
             antialiasing: true,
             fonts: vec![
@@ -48,7 +56,15 @@ fn main() {
         .theme(Flowsurface::theme)
         .scale_factor(Flowsurface::scale_factor)
         .subscription(Flowsurface::subscription)
-        .run();
+        .run()
+}
+
+#[cfg(target_arch = "wasm32")]
+use wasm_bindgen::prelude::*;
+
+#[cfg_attr(target_arch = "wasm32", wasm_bindgen(start))]
+pub fn wasm_main() {
+    main().expect("Failed to run app");
 }
 
 struct Flowsurface {
@@ -538,7 +554,8 @@ impl Flowsurface {
             .market_subscriptions()
             .map(Message::MarketWsEvent);
 
-        let tick = iced::time::every(std::time::Duration::from_millis(100)).map(Message::Tick);
+        let tick = iced::time::every(std::time::Duration::from_millis(100))
+            .map(|_| Message::Tick(std::time::Instant::now()));
 
         let hotkeys = keyboard::on_key_press(|key, _| match key.as_ref() {
             keyboard::Key::Named(keyboard::key::Named::Escape) => Some(Message::GoBack),

@@ -1,8 +1,10 @@
 use exchange::SerTicker;
-use rodio::{Decoder, OutputStream, OutputStreamHandle, Source};
 use rustc_hash::FxHashMap;
 use serde::{Deserialize, Serialize};
 use std::time::{Duration, Instant};
+
+#[cfg(not(target_arch = "wasm32"))]
+use rodio::{Decoder, OutputStream, OutputStreamHandle, Source};
 
 use crate::util::ok_or_default;
 
@@ -51,51 +53,67 @@ impl From<SoundType> for usize {
 }
 
 pub struct SoundCache {
+    #[cfg(not(target_arch = "wasm32"))]
     _stream: OutputStream,
+    #[cfg(not(target_arch = "wasm32"))]
     stream_handle: OutputStreamHandle,
     volume: Option<f32>,
+    #[cfg(not(target_arch = "wasm32"))]
     sample_buffers: [Option<rodio::buffer::SamplesBuffer<i16>>; 4],
     last_played: [(Option<Instant>, usize); 4],
 }
 
 impl SoundCache {
     pub fn new(volume: Option<f32>) -> Result<Self, String> {
-        let (stream, stream_handle) = match OutputStream::try_default() {
-            Ok(result) => result,
-            Err(err) => {
-                return Err(format!("Failed to open audio output: {}", err));
-            }
-        };
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let (stream, stream_handle) = match OutputStream::try_default() {
+                Ok(result) => result,
+                Err(err) => {
+                    return Err(format!("Failed to open audio output: {}", err));
+                }
+            };
 
-        Ok(SoundCache {
-            _stream: stream,
-            stream_handle,
-            volume,
-            sample_buffers: [None, None, None, None],
-            last_played: [(None, 0), (None, 0), (None, 0), (None, 0)],
-        })
+            Ok(SoundCache {
+                _stream: stream,
+                stream_handle,
+                volume,
+                sample_buffers: [None, None, None, None],
+                last_played: [(None, 0), (None, 0), (None, 0), (None, 0)],
+            })
+        }
+        #[cfg(target_arch = "wasm32")]
+        {
+            Ok(SoundCache {
+                volume,
+                last_played: [(None, 0), (None, 0), (None, 0), (None, 0)],
+            })
+        }
     }
 
     pub fn with_default_sounds(volume: Option<f32>) -> Result<Self, String> {
         let mut cache = Self::new(volume)?;
 
-        let sound_types = [
-            SoundType::Buy,
-            SoundType::HardBuy,
-            SoundType::Sell,
-            SoundType::HardSell,
-        ];
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let sound_types = [
+                SoundType::Buy,
+                SoundType::HardBuy,
+                SoundType::Sell,
+                SoundType::HardSell,
+            ];
 
-        for sound_type in &sound_types {
-            let (path, data) = match sound_type {
-                SoundType::Buy => (BUY_SOUND, BUY_SOUND_DATA),
-                SoundType::HardBuy => (HARD_BUY_SOUND, HARD_BUY_SOUND_DATA),
-                SoundType::Sell => (SELL_SOUND, SELL_SOUND_DATA),
-                SoundType::HardSell => (HARD_SELL_SOUND, HARD_SELL_SOUND_DATA),
-            };
+            for sound_type in &sound_types {
+                let (path, data) = match sound_type {
+                    SoundType::Buy => (BUY_SOUND, BUY_SOUND_DATA),
+                    SoundType::HardBuy => (HARD_BUY_SOUND, HARD_BUY_SOUND_DATA),
+                    SoundType::Sell => (SELL_SOUND, SELL_SOUND_DATA),
+                    SoundType::HardSell => (HARD_SELL_SOUND, HARD_SELL_SOUND_DATA),
+                };
 
-            if let Err(e) = cache.load_sound_from_memory(*sound_type, data) {
-                return Err(format!("Failed to load default sound '{}': {}", path, e));
+                if let Err(e) = cache.load_sound_from_memory(*sound_type, data) {
+                    return Err(format!("Failed to load default sound '{}': {}", path, e));
+                }
             }
         }
 
@@ -104,30 +122,33 @@ impl SoundCache {
 
     pub fn load_sound_from_memory(
         &mut self,
-        sound_type: SoundType,
-        data: &[u8],
+        _sound_type: SoundType,
+        _data: &[u8],
     ) -> Result<(), String> {
-        let index = sound_type as usize;
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let index = _sound_type as usize;
 
-        if self.sample_buffers[index].is_some() {
-            return Ok(());
-        }
-
-        let cursor = std::io::Cursor::new(data.to_vec());
-        let decoder = match Decoder::new(cursor) {
-            Ok(decoder) => decoder,
-            Err(err) => {
-                return Err(format!("Failed to decode sound data: {}", err));
+            if self.sample_buffers[index].is_some() {
+                return Ok(());
             }
-        };
 
-        let sample_buffer = rodio::buffer::SamplesBuffer::new(
-            decoder.channels(),
-            decoder.sample_rate(),
-            decoder.collect::<Vec<i16>>(),
-        );
+            let cursor = std::io::Cursor::new(_data.to_vec());
+            let decoder = match Decoder::new(cursor) {
+                Ok(decoder) => decoder,
+                Err(err) => {
+                    return Err(format!("Failed to decode sound data: {}", err));
+                }
+            };
 
-        self.sample_buffers[index] = Some(sample_buffer);
+            let sample_buffer = rodio::buffer::SamplesBuffer::new(
+                decoder.channels(),
+                decoder.sample_rate(),
+                decoder.collect::<Vec<i16>>(),
+            );
+
+            self.sample_buffers[index] = Some(sample_buffer);
+        }
         Ok(())
     }
 
@@ -136,43 +157,46 @@ impl SoundCache {
             return Ok(());
         };
 
-        let index = usize::from(sound_type);
+        #[cfg(not(target_arch = "wasm32"))]
+        {
+            let index = usize::from(sound_type);
 
-        let Some(buffer) = self.sample_buffers[index].as_ref() else {
-            return Err(format!("Sound '{sound_type}' not loaded",));
-        };
+            let Some(buffer) = self.sample_buffers[index].as_ref() else {
+                return Err(format!("Sound '{sound_type}' not loaded",));
+            };
 
-        let now = Instant::now();
-        let (last_time, count) = &mut self.last_played[index];
+            let now = Instant::now();
+            let (last_time, count) = &mut self.last_played[index];
 
-        let overlap_count = if let Some(last) = last_time {
-            if now.duration_since(*last) < OVERLAP_THRESHOLD {
-                *count += 1;
-                *last = now;
-                *count
+            let overlap_count = if let Some(last) = last_time {
+                if now.duration_since(*last) < OVERLAP_THRESHOLD {
+                    *count += 1;
+                    *last = now;
+                    *count
+                } else {
+                    *last = now;
+                    *count = 1;
+                    1
+                }
             } else {
-                *last = now;
+                *last_time = Some(now);
                 *count = 1;
                 1
-            }
-        } else {
-            *last_time = Some(now);
-            *count = 1;
-            1
-        };
+            };
 
-        let adjusted_volume = base_volume / (overlap_count as f32);
+            let adjusted_volume = base_volume / (overlap_count as f32);
 
-        let sink = match rodio::Sink::try_new(&self.stream_handle) {
-            Ok(sink) => sink,
-            Err(err) => {
-                return Err(format!("Failed to create audio sink: {}", err));
-            }
-        };
+            let sink = match rodio::Sink::try_new(&self.stream_handle) {
+                Ok(sink) => sink,
+                Err(err) => {
+                    return Err(format!("Failed to create audio sink: {}", err));
+                }
+            };
 
-        sink.set_volume(adjusted_volume / 100.0);
-        sink.append(buffer.clone());
-        sink.detach();
+            sink.set_volume(adjusted_volume / 100.0);
+            sink.append(buffer.clone());
+            sink.detach();
+        }
 
         Ok(())
     }

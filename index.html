@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>Flowsurface - Web Trading Charts</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Trunk: compile the Rust crate (bin = flowsurface) to WASM -->
+    <link data-trunk rel="rust" href="Cargo.toml" data-bin="flowsurface" />
+    <!-- Trunk: make assets available at runtime -->
+    <link data-trunk rel="copy-dir" href="assets" />
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #1a1a1a;
+            overflow: hidden;
+        }
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- Trunk will automatically inject the WASM module here -->
+</body>
+</html>
