@@ -1,0 +1,272 @@
+# Granular Agent Architecture for Flowsurface
+# Detailed codebase-to-agent mapping for specialized development
+
+project_structure:
+  main_gui: "src/"
+  data_layer: "data/"  
+  exchange_layer: "exchange/"
+  tooling: "scripts/, docs/, assets/"
+
+granular_agents:
+  
+  # === CORE APPLICATION LAYER ===
+  
+  app_architect:
+    responsibility: "Application-level architecture and coordination"
+    codebase_mapping:
+      - "src/main.rs"
+      - "src/window.rs"
+      - "src/logger.rs"
+      - "Cargo.toml (workspace coordination)"
+    specialization: "Iced daemon architecture, window management, application lifecycle"
+    
+  layout_specialist:
+    responsibility: "UI layout and pane management systems"
+    codebase_mapping:
+      - "src/layout.rs"
+      - "src/screen/"
+      - "src/screen/dashboard.rs"
+      - "src/screen/dashboard/pane.rs"
+      - "data/src/layout/"
+    specialization: "Multi-pane layouts, dynamic splitting, layout persistence"
+    
+  # === GUI LAYER AGENTS ===
+  
+  widget_developer:
+    responsibility: "Custom UI components and interactions"
+    codebase_mapping:
+      - "src/widget.rs"
+      - "src/widget/"
+      - "src/widget/multi_split.rs"
+      - "src/widget/toast.rs"
+      - "src/widget/column_drag.rs"
+      - "src/widget/color_picker.rs"
+      - "src/widget/decorate.rs"
+    specialization: "Iced custom widgets, UI interactions, visual components"
+    
+  modal_specialist:
+    responsibility: "Dialog systems and modal interfaces"
+    codebase_mapping:
+      - "src/modal.rs"
+      - "src/modal/"
+      - "src/modal/theme_editor.rs"
+      - "src/modal/layout_manager.rs"
+      - "src/modal/audio.rs"
+      - "src/modal/pane/"
+    specialization: "Settings dialogs, configuration UIs, modal state management"
+    
+  theme_designer:
+    responsibility: "Visual styling and theming system"
+    codebase_mapping:
+      - "src/style.rs"
+      - "src/modal/theme_editor.rs"
+      - "data/src/config/theme.rs"
+    specialization: "Iced theming, color palettes, runtime theme customization"
+    
+  sidebar_specialist:
+    responsibility: "Ticker selection and application controls"
+    codebase_mapping:
+      - "src/screen/dashboard/sidebar.rs"
+      - "src/screen/dashboard/tickers_table.rs"
+      - "data/src/config/sidebar.rs"
+      - "data/src/tickers_table.rs"
+    specialization: "Ticker management, sidebar state, filtering and sorting"
+    
+  # === CHART SYSTEM AGENTS ===
+  
+  chart_architect:
+    responsibility: "Chart system architecture and coordination"
+    codebase_mapping:
+      - "src/chart.rs"
+      - "data/src/chart.rs"
+    specialization: "Chart type coordination, data binding, rendering pipeline"
+    
+  chart_renderer:
+    responsibility: "Chart visualization implementations"
+    codebase_mapping:
+      - "src/chart/heatmap.rs"
+      - "src/chart/kline.rs"
+      - "data/src/chart/heatmap.rs"
+      - "data/src/chart/kline.rs"
+      - "data/src/chart/timeandsales.rs"
+    specialization: "Canvas rendering, real-time chart updates, visual algorithms"
+    
+  scaling_specialist:
+    responsibility: "Chart scaling and axis management"
+    codebase_mapping:
+      - "src/chart/scale/"
+      - "src/chart/scale/linear.rs"
+      - "src/chart/scale/timeseries.rs"
+    specialization: "Time series scaling, linear scaling, zoom/pan functionality"
+    
+  indicator_developer:
+    responsibility: "Technical indicators and overlays"
+    codebase_mapping:
+      - "src/chart/indicator/"
+      - "src/chart/indicator.rs"
+      - "data/src/chart/indicator.rs"
+      - "src/chart/indicator/kline/"
+      - "src/chart/indicator/plot/"
+    specialization: "Technical analysis, indicator calculations, plot rendering"
+    
+  # === DATA LAYER AGENTS ===
+  
+  data_architect:
+    responsibility: "Data layer architecture and flow"
+    codebase_mapping:
+      - "data/src/lib.rs"
+      - "data/src/util.rs"
+      - "data/Cargo.toml"
+    specialization: "Data structures, serialization, workspace coordination"
+    
+  config_manager:
+    responsibility: "Configuration and persistence systems"
+    codebase_mapping:
+      - "data/src/config.rs"
+      - "data/src/config/"
+      - "data/src/config/state.rs"
+      - "data/src/config/timezone.rs"
+    specialization: "JSON persistence, configuration schemas, state management"
+    
+  aggregator_specialist:
+    responsibility: "Data aggregation and time series processing"
+    codebase_mapping:
+      - "data/src/aggr.rs"
+      - "data/src/aggr/"
+      - "data/src/aggr/ticks.rs"
+      - "data/src/aggr/time.rs"
+    specialization: "Time-based aggregation, tick data processing, real-time pipelines"
+    
+  audio_specialist:
+    responsibility: "Sound system and trade notifications"
+    codebase_mapping:
+      - "data/src/audio.rs"
+      - "src/modal/audio.rs"
+    specialization: "Audio playback, trade notifications, sound configuration"
+    
+  # === EXCHANGE LAYER AGENTS ===
+  
+  exchange_architect:
+    responsibility: "Exchange integration architecture"
+    codebase_mapping:
+      - "exchange/src/lib.rs"
+      - "exchange/src/adapter.rs"
+      - "exchange/Cargo.toml"
+    specialization: "Exchange abstraction, common interfaces, adapter coordination"
+    
+  websocket_specialist:
+    responsibility: "WebSocket connections and real-time streams"
+    codebase_mapping:
+      - "exchange/src/connect.rs"
+      - "exchange/src/limiter.rs"
+    specialization: "WebSocket management, connection pooling, rate limiting"
+    
+  exchange_adapters:
+    responsibility: "Specific exchange implementations"
+    codebase_mapping:
+      - "exchange/src/adapter/"
+      - "exchange/src/adapter/binance.rs"
+      - "exchange/src/adapter/bybit.rs"
+      - "exchange/src/adapter/hyperliquid.rs"
+    specialization: "Exchange-specific protocols, API implementations, data parsing"
+    
+  market_data_specialist:
+    responsibility: "Market data processing and depth handling"
+    codebase_mapping:
+      - "exchange/src/fetcher.rs"
+      - "exchange/src/depth.rs"
+    specialization: "Order book processing, historical data, market data structures"
+    
+  # === CROSS-CUTTING AGENTS ===
+  
+  performance_optimizer:
+    responsibility: "Performance analysis and optimization"
+    codebase_mapping:
+      - "All performance-critical paths"
+      - "Real-time rendering code"
+      - "WebSocket data processing"
+    specialization: "Profiling, memory optimization, rendering performance"
+    
+  security_auditor:
+    responsibility: "Security analysis for trading systems"
+    codebase_mapping:
+      - "Exchange connections and data handling"
+      - "Configuration and persistence"
+      - "Network communication"
+    specialization: "Trading system security, data validation, secure connections"
+    
+  integration_tester:
+    responsibility: "Cross-system integration testing"
+    codebase_mapping:
+      - "GUI ↔ Data integration points"
+      - "Data ↔ Exchange integration points"
+      - "Real-time data flow testing"
+    specialization: "End-to-end testing, real-time system validation"
+    
+  # === TOOLING AND INFRASTRUCTURE ===
+  
+  build_specialist:
+    responsibility: "Build systems and cross-platform compilation"
+    codebase_mapping:
+      - "scripts/"
+      - "scripts/build-windows.sh"
+      - "scripts/build-macos.sh"
+      - "scripts/package-linux.sh"
+      - "Cargo.toml configurations"
+    specialization: "Cross-platform builds, packaging, deployment automation"
+    
+  documentation_specialist:
+    responsibility: "Documentation and developer experience"
+    codebase_mapping:
+      - "docs/"
+      - "README.md"
+      - "CLAUDE.md"
+      - "Code comments and documentation"
+    specialization: "Technical documentation, API docs, developer guides"
+
+agent_interaction_matrix:
+  high_interaction_pairs:
+    - ["chart_architect", "chart_renderer"]
+    - ["layout_specialist", "widget_developer"]  
+    - ["exchange_architect", "websocket_specialist"]
+    - ["data_architect", "config_manager"]
+    - ["app_architect", "layout_specialist"]
+    
+  medium_interaction_pairs:
+    - ["chart_renderer", "aggregator_specialist"]
+    - ["modal_specialist", "theme_designer"]
+    - ["sidebar_specialist", "config_manager"]
+    - ["exchange_adapters", "market_data_specialist"]
+    
+  cross_cutting_interactions:
+    - "performance_optimizer → all rendering agents"
+    - "security_auditor → all data handling agents"
+    - "integration_tester → all boundary agents"
+
+complexity_analysis:
+  total_agents: 19
+  core_agents: 15
+  cross_cutting: 4
+  specialization_depth: "very_high"
+  coordination_overhead: "significant"
+  
+recommendations:
+  approach: "hybrid_specialization"
+  explanation: |
+    This granular approach provides maximum specialization but requires significant
+    coordination overhead. Consider implementing in phases:
+    
+    Phase 1: Keep current 6 core agents
+    Phase 2: Add chart_architect, exchange_architect, data_architect for key areas
+    Phase 3: Gradually specialize based on development bottlenecks
+    
+  alternative_groupings:
+    gui_cluster: ["widget_developer", "modal_specialist", "theme_designer", "layout_specialist"]
+    chart_cluster: ["chart_architect", "chart_renderer", "scaling_specialist", "indicator_developer"]
+    exchange_cluster: ["exchange_architect", "websocket_specialist", "exchange_adapters", "market_data_specialist"]
+    data_cluster: ["data_architect", "config_manager", "aggregator_specialist"]
+    
+conclusion: |
+  Granular specialization offers precise expertise but increases coordination complexity.
+  The sweet spot likely involves 8-12 specialized agents covering major architectural
+  boundaries while maintaining manageable interaction overhead.
