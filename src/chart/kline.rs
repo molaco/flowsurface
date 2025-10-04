@@ -612,6 +612,17 @@ impl KlineChart {
         self.invalidate(None);
     }
 
+    pub fn set_candle_spacing_factor(&mut self, factor: f32) {
+        if let KlineChartKind::Footprint {
+            ref mut candle_spacing_factor, ..
+        } = self.kind
+        {
+            *candle_spacing_factor = factor.clamp(0.0, 1.0);
+        }
+
+        self.invalidate(None);
+    }
+
     pub fn basis(&self) -> Basis {
         self.chart.basis
     }
@@ -960,6 +971,7 @@ impl canvas::Program<Message> for KlineChart {
                     cell_width: _,
                     min_cell_width: _,
                     max_cell_width: _,
+                    candle_spacing_factor: _,
                 } => {
                     let (highest, lowest) = chart.price_range(&region);
 
@@ -984,7 +996,11 @@ impl canvas::Program<Message> for KlineChart {
                     };
 
                     let candle_width = self.kind.candle_width_ratio() * chart.cell_width;
-                    let content_spacing = ContentGaps::from_view(candle_width, chart.scaling);
+                    let content_spacing = ContentGaps::from_view(
+                        candle_width,
+                        chart.scaling,
+                        self.kind.candle_spacing_factor()
+                    );
 
                     let imbalance = studies.iter().find_map(|study| {
                         if let FootprintStudy::Imbalance {
@@ -1769,9 +1785,9 @@ fn draw_imbalance_markers(
 }
 
 impl ContentGaps {
-    fn from_view(candle_width: f32, scaling: f32) -> Self {
+    fn from_view(candle_width: f32, scaling: f32, spacing_factor: f32) -> Self {
         let px = |p: f32| p / scaling;
-        let base = (candle_width * 0.2).max(px(2.0));
+        let base = (candle_width * spacing_factor).max(px(2.0));
         Self {
             marker_to_candle: base,
             candle_to_cluster: base,

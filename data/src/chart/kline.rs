@@ -252,6 +252,8 @@ pub enum KlineChartKind {
         min_cell_width: f32,
         #[serde(default = "default_max_cell_width")]
         max_cell_width: f32,
+        #[serde(default = "default_candle_spacing_factor")]
+        candle_spacing_factor: f32,
     },
 }
 
@@ -262,6 +264,7 @@ fn default_wick_thickness() -> f32 { 1.0 }
 fn default_cell_width() -> f32 { 60.0 }
 fn default_min_cell_width() -> f32 { 50.0 }
 fn default_max_cell_width() -> f32 { 200.0 }
+fn default_candle_spacing_factor() -> f32 { 0.2 }
 
 impl KlineChartKind {
     pub fn min_scaling(&self) -> f32 {
@@ -338,6 +341,13 @@ impl KlineChartKind {
         match self {
             KlineChartKind::Footprint { wick_thickness, .. } => *wick_thickness,
             KlineChartKind::Candles => 1.0,
+        }
+    }
+
+    pub fn candle_spacing_factor(&self) -> f32 {
+        match self {
+            KlineChartKind::Footprint { candle_spacing_factor, .. } => *candle_spacing_factor,
+            KlineChartKind::Candles => 0.2,
         }
     }
 }

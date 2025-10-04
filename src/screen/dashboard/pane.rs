@@ -97,6 +97,7 @@ pub enum Message {
     CellWidthChanged(pane_grid::Pane, f32),
     MinCellWidthChanged(pane_grid::Pane, f32),
     MaxCellWidthChanged(pane_grid::Pane, f32),
+    CandleSpacingFactorChanged(pane_grid::Pane, f32),
     StreamModifierChanged(pane_grid::Pane, modal::stream::Message),
     StudyConfigurator(pane_grid::Pane, modal::pane::settings::study::StudyMessage),
     SwitchLinkGroup(pane_grid::Pane, Option<LinkGroup>),
@@ -1191,6 +1192,7 @@ impl Content {
                         cell_width: 60.0,
                         min_cell_width: 50.0,
                         max_cell_width: 200.0,
+                        candle_spacing_factor: 0.2,
                     }),
             ),
             _ => (

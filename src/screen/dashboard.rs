@@ -504,6 +504,15 @@ impl Dashboard {
                         *kind = c.kind.clone();
                     }
                 }
+                pane::Message::CandleSpacingFactorChanged(pane, factor) => {
+                    if let Some(state) = self.get_mut_pane(main_window.id, window, pane)
+                        && let pane::Content::Kline { chart, kind, .. } = &mut state.content
+                        && let Some(c) = chart
+                    {
+                        c.set_candle_spacing_factor(factor);
+                        *kind = c.kind.clone();
+                    }
+                }
                 pane::Message::StudyConfigurator(pane, study_msg) => {
                     if let Some(state) = self.get_mut_pane(main_window.id, window, pane) {
                         match study_msg {

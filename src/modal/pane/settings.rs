@@ -458,6 +458,7 @@ pub fn kline_cfg_view<'a>(
             cell_width,
             min_cell_width,
             max_cell_width,
+            candle_spacing_factor,
         } => {
             let cluster_picklist =
                 pick_list(ClusterKind::ALL, Some(clusters), move |new_cluster_kind| {
@@ -586,6 +587,19 @@ pub fn kline_cfg_view<'a>(
                 )
             };
 
+            let candle_spacing_slider = {
+                let slider_ui = slider(0.0..=1.0, *candle_spacing_factor, move |value| {
+                    Message::CandleSpacingFactorChanged(pane, value)
+                })
+                .step(0.05);
+
+                classic_slider_row(
+                    text("Candle spacing"),
+                    slider_ui.into(),
+                    Some(text(format!("{:.2}", candle_spacing_factor)).size(13)),
+                )
+            };
+
             split_column![
                 column![text("Cluster type").size(14), cluster_picklist].spacing(8),
                 column![text("Cluster scaling").size(14), scaling].spacing(8),
@@ -596,7 +610,8 @@ pub fn kline_cfg_view<'a>(
                     candle_width_slider,
                     cluster_width_slider,
                     candle_body_slider,
-                    wick_thickness_slider
+                    wick_thickness_slider,
+                    candle_spacing_slider
                 ].spacing(8),
                 column![text("Studies").size(14), study_cfg].spacing(8),
                 row![
