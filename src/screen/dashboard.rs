@@ -441,6 +441,69 @@ impl Dashboard {
                         *kind = c.kind.clone();
                     }
                 }
+                pane::Message::CandleWidthRatioChanged(pane, ratio) => {
+                    if let Some(state) = self.get_mut_pane(main_window.id, window, pane)
+                        && let pane::Content::Kline { chart, kind, .. } = &mut state.content
+                        && let Some(c) = chart
+                    {
+                        c.set_candle_width_ratio(ratio);
+                        *kind = c.kind.clone();
+                    }
+                }
+                pane::Message::ClusterWidthFactorChanged(pane, factor) => {
+                    if let Some(state) = self.get_mut_pane(main_window.id, window, pane)
+                        && let pane::Content::Kline { chart, kind, .. } = &mut state.content
+                        && let Some(c) = chart
+                    {
+                        c.set_cluster_width_factor(factor);
+                        *kind = c.kind.clone();
+                    }
+                }
+                pane::Message::CandleBodyRatioChanged(pane, ratio) => {
+                    if let Some(state) = self.get_mut_pane(main_window.id, window, pane)
+                        && let pane::Content::Kline { chart, kind, .. } = &mut state.content
+                        && let Some(c) = chart
+                    {
+                        c.set_candle_body_ratio(ratio);
+                        *kind = c.kind.clone();
+                    }
+                }
+                pane::Message::WickThicknessChanged(pane, thickness) => {
+                    if let Some(state) = self.get_mut_pane(main_window.id, window, pane)
+                        && let pane::Content::Kline { chart, kind, .. } = &mut state.content
+                        && let Some(c) = chart
+                    {
+                        c.set_wick_thickness(thickness);
+                        *kind = c.kind.clone();
+                    }
+                }
+                pane::Message::CellWidthChanged(pane, width) => {
+                    if let Some(state) = self.get_mut_pane(main_window.id, window, pane)
+                        && let pane::Content::Kline { chart, kind, .. } = &mut state.content
+                        && let Some(c) = chart
+                    {
+                        c.set_cell_width(width);
+                        *kind = c.kind.clone();
+                    }
+                }
+                pane::Message::MinCellWidthChanged(pane, width) => {
+                    if let Some(state) = self.get_mut_pane(main_window.id, window, pane)
+                        && let pane::Content::Kline { chart, kind, .. } = &mut state.content
+                        && let Some(c) = chart
+                    {
+                        c.set_min_cell_width(width);
+                        *kind = c.kind.clone();
+                    }
+                }
+                pane::Message::MaxCellWidthChanged(pane, width) => {
+                    if let Some(state) = self.get_mut_pane(main_window.id, window, pane)
+                        && let pane::Content::Kline { chart, kind, .. } = &mut state.content
+                        && let Some(c) = chart
+                    {
+                        c.set_max_cell_width(width);
+                        *kind = c.kind.clone();
+                    }
+                }
                 pane::Message::StudyConfigurator(pane, study_msg) => {
                     if let Some(state) = self.get_mut_pane(main_window.id, window, pane) {
                         match study_msg {

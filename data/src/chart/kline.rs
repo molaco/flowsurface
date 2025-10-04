@@ -229,7 +229,7 @@ impl KlineTrades {
     }
 }
 
-#[derive(Debug, Clone, PartialEq, Eq, Default, Deserialize, Serialize)]
+#[derive(Debug, Clone, PartialEq, Default, Deserialize, Serialize)]
 pub enum KlineChartKind {
     #[default]
     Candles,
@@ -238,8 +238,30 @@ pub enum KlineChartKind {
         #[serde(default)]
         scaling: ClusterScaling,
         studies: Vec<FootprintStudy>,
+        #[serde(default = "default_candle_width_ratio")]
+        candle_width_ratio: f32,
+        #[serde(default = "default_cluster_width_factor")]
+        cluster_width_factor: f32,
+        #[serde(default = "default_candle_body_ratio")]
+        candle_body_ratio: f32,
+        #[serde(default = "default_wick_thickness")]
+        wick_thickness: f32,
+        #[serde(default = "default_cell_width")]
+        cell_width: f32,
+        #[serde(default = "default_min_cell_width")]
+        min_cell_width: f32,
+        #[serde(default = "default_max_cell_width")]
+        max_cell_width: f32,
     },
 }
+
+fn default_candle_width_ratio() -> f32 { 0.2 }
+fn default_cluster_width_factor() -> f32 { 0.8 }
+fn default_candle_body_ratio() -> f32 { 0.5 }
+fn default_wick_thickness() -> f32 { 1.0 }
+fn default_cell_width() -> f32 { 60.0 }
+fn default_min_cell_width() -> f32 { 50.0 }
+fn default_max_cell_width() -> f32 { 200.0 }
 
 impl KlineChartKind {
     pub fn min_scaling(&self) -> f32 {
@@ -258,14 +280,14 @@ impl KlineChartKind {
 
     pub fn max_cell_width(&self) -> f32 {
         match self {
-            KlineChartKind::Footprint { .. } => 360.0,
+            KlineChartKind::Footprint { max_cell_width, .. } => *max_cell_width,
             KlineChartKind::Candles => 16.0,
         }
     }
 
     pub fn min_cell_width(&self) -> f32 {
         match self {
-            KlineChartKind::Footprint { .. } => 80.0,
+            KlineChartKind::Footprint { min_cell_width, .. } => *min_cell_width,
             KlineChartKind::Candles => 1.0,
         }
     }
@@ -286,8 +308,36 @@ impl KlineChartKind {
 
     pub fn default_cell_width(&self) -> f32 {
         match self {
-            KlineChartKind::Footprint { .. } => 80.0,
+            KlineChartKind::Footprint { cell_width, .. } => *cell_width,
             KlineChartKind::Candles => 4.0,
+        }
+    }
+
+    pub fn candle_width_ratio(&self) -> f32 {
+        match self {
+            KlineChartKind::Footprint { candle_width_ratio, .. } => *candle_width_ratio,
+            KlineChartKind::Candles => 0.8,
+        }
+    }
+
+    pub fn cluster_width_factor(&self) -> f32 {
+        match self {
+            KlineChartKind::Footprint { cluster_width_factor, .. } => *cluster_width_factor,
+            KlineChartKind::Candles => 0.9,
+        }
+    }
+
+    pub fn candle_body_ratio(&self) -> f32 {
+        match self {
+            KlineChartKind::Footprint { candle_body_ratio, .. } => *candle_body_ratio,
+            KlineChartKind::Candles => 1.0,
+        }
+    }
+
+    pub fn wick_thickness(&self) -> f32 {
+        match self {
+            KlineChartKind::Footprint { wick_thickness, .. } => *wick_thickness,
+            KlineChartKind::Candles => 1.0,
         }
     }
 }

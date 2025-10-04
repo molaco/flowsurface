@@ -451,6 +451,13 @@ pub fn kline_cfg_view<'a>(
             clusters,
             scaling,
             studies,
+            candle_width_ratio,
+            cluster_width_factor,
+            candle_body_ratio,
+            wick_thickness,
+            cell_width,
+            min_cell_width,
+            max_cell_width,
         } => {
             let cluster_picklist =
                 pick_list(ClusterKind::ALL, Some(clusters), move |new_cluster_kind| {
@@ -488,9 +495,109 @@ pub fn kline_cfg_view<'a>(
                 Message::StudyConfigurator(pane, study::StudyMessage::Footprint(msg))
             });
 
+            let candle_width_slider = {
+                let slider_ui = slider(0.05..=0.5, *candle_width_ratio, move |value| {
+                    Message::CandleWidthRatioChanged(pane, value)
+                })
+                .step(0.05);
+
+                classic_slider_row(
+                    text("Candle width"),
+                    slider_ui.into(),
+                    Some(text(format!("{:.0}%", candle_width_ratio * 100.0)).size(13)),
+                )
+            };
+
+            let cluster_width_slider = {
+                let slider_ui = slider(0.5..=1.0, *cluster_width_factor, move |value| {
+                    Message::ClusterWidthFactorChanged(pane, value)
+                })
+                .step(0.05);
+
+                classic_slider_row(
+                    text("Cluster max width"),
+                    slider_ui.into(),
+                    Some(text(format!("{:.0}%", cluster_width_factor * 100.0)).size(13)),
+                )
+            };
+
+            let candle_body_slider = {
+                let slider_ui = slider(0.1..=1.0, *candle_body_ratio, move |value| {
+                    Message::CandleBodyRatioChanged(pane, value)
+                })
+                .step(0.1);
+
+                classic_slider_row(
+                    text("Candle body width"),
+                    slider_ui.into(),
+                    Some(text(format!("{:.0}%", candle_body_ratio * 100.0)).size(13)),
+                )
+            };
+
+            let wick_thickness_slider = {
+                let slider_ui = slider(0.5..=5.0, *wick_thickness, move |value| {
+                    Message::WickThicknessChanged(pane, value)
+                })
+                .step(0.5);
+
+                classic_slider_row(
+                    text("Wick thickness"),
+                    slider_ui.into(),
+                    Some(text(format!("{:.1}px", wick_thickness)).size(13)),
+                )
+            };
+
+            let min_cell_width_slider = {
+                let slider_ui = slider(10.0..=*max_cell_width, *min_cell_width, move |value| {
+                    Message::MinCellWidthChanged(pane, value)
+                })
+                .step(5.0);
+
+                classic_slider_row(
+                    text("Min cell width (zoom in limit)"),
+                    slider_ui.into(),
+                    Some(text(format!("{:.0}px", min_cell_width)).size(13)),
+                )
+            };
+
+            let max_cell_width_slider = {
+                let slider_ui = slider(*min_cell_width..=500.0, *max_cell_width, move |value| {
+                    Message::MaxCellWidthChanged(pane, value)
+                })
+                .step(10.0);
+
+                classic_slider_row(
+                    text("Max cell width (zoom out limit)"),
+                    slider_ui.into(),
+                    Some(text(format!("{:.0}px", max_cell_width)).size(13)),
+                )
+            };
+
+            let cell_width_slider = {
+                let slider_ui = slider(*min_cell_width..=*max_cell_width, *cell_width, move |value| {
+                    Message::CellWidthChanged(pane, value)
+                })
+                .step(5.0);
+
+                classic_slider_row(
+                    text("Default cell width"),
+                    slider_ui.into(),
+                    Some(text(format!("{:.0}px", cell_width)).size(13)),
+                )
+            };
+
             split_column![
                 column![text("Cluster type").size(14), cluster_picklist].spacing(8),
                 column![text("Cluster scaling").size(14), scaling].spacing(8),
+                column![text("Visual settings").size(14),
+                    min_cell_width_slider,
+                    max_cell_width_slider,
+                    cell_width_slider,
+                    candle_width_slider,
+                    cluster_width_slider,
+                    candle_body_slider,
+                    wick_thickness_slider
+                ].spacing(8),
                 column![text("Studies").size(14), study_cfg].spacing(8),
                 row![
                     space::horizontal(),

@@ -518,6 +518,100 @@ impl KlineChart {
         self.invalidate(None);
     }
 
+    pub fn set_candle_width_ratio(&mut self, ratio: f32) {
+        if let KlineChartKind::Footprint {
+            ref mut candle_width_ratio, ..
+        } = self.kind
+        {
+            *candle_width_ratio = ratio.clamp(0.05, 0.5);
+        }
+
+        self.invalidate(None);
+    }
+
+    pub fn set_cluster_width_factor(&mut self, factor: f32) {
+        if let KlineChartKind::Footprint {
+            ref mut cluster_width_factor, ..
+        } = self.kind
+        {
+            *cluster_width_factor = factor.clamp(0.5, 1.0);
+        }
+
+        self.invalidate(None);
+    }
+
+    pub fn set_candle_body_ratio(&mut self, ratio: f32) {
+        if let KlineChartKind::Footprint {
+            ref mut candle_body_ratio, ..
+        } = self.kind
+        {
+            *candle_body_ratio = ratio.clamp(0.1, 1.0);
+        }
+
+        self.invalidate(None);
+    }
+
+    pub fn set_wick_thickness(&mut self, thickness: f32) {
+        if let KlineChartKind::Footprint {
+            ref mut wick_thickness, ..
+        } = self.kind
+        {
+            *wick_thickness = thickness.clamp(0.5, 5.0);
+        }
+
+        self.invalidate(None);
+    }
+
+    pub fn set_cell_width(&mut self, width: f32) {
+        let min_width = self.kind.min_cell_width();
+        let max_width = self.kind.max_cell_width();
+
+        if let KlineChartKind::Footprint {
+            ref mut cell_width, ..
+        } = self.kind
+        {
+            *cell_width = width.clamp(min_width, max_width);
+        }
+
+        // Update the actual ViewState cell_width
+        self.chart.cell_width = self.kind.default_cell_width();
+        self.invalidate(None);
+    }
+
+    pub fn set_min_cell_width(&mut self, width: f32) {
+        if let KlineChartKind::Footprint {
+            ref mut min_cell_width,
+            ref mut cell_width,
+            ref max_cell_width,
+            ..
+        } = self.kind
+        {
+            *min_cell_width = width.clamp(10.0, *max_cell_width);
+            // Ensure current cell_width is within new bounds
+            *cell_width = cell_width.clamp(*min_cell_width, *max_cell_width);
+            self.chart.cell_width = *cell_width;
+        }
+
+        self.invalidate(None);
+    }
+
+    pub fn set_max_cell_width(&mut self, width: f32) {
+        if let KlineChartKind::Footprint {
+            ref mut max_cell_width,
+            ref mut cell_width,
+            ref min_cell_width,
+            ..
+        } = self.kind
+        {
+            *max_cell_width = width.clamp(*min_cell_width, 500.0);
+            // Ensure current cell_width is within new bounds
+            *cell_width = cell_width.clamp(*min_cell_width, *max_cell_width);
+            self.chart.cell_width = *cell_width;
+        }
+
+        self.invalidate(None);
+    }
+
     pub fn basis(&self) -> Basis {
         self.chart.basis
     }
@@ -859,6 +953,13 @@ impl canvas::Program<Message> for KlineChart {
                     clusters,
                     scaling,
                     studies,
+                    candle_width_ratio: _,
+                    cluster_width_factor: _,
+                    candle_body_ratio: _,
+                    wick_thickness: _,
+                    cell_width: _,
+                    min_cell_width: _,
+                    max_cell_width: _,
                 } => {
                     let (highest, lowest) = chart.price_range(&region);
 
@@ -882,7 +983,7 @@ impl canvas::Program<Message> for KlineChart {
                         text_size_from_height.min(text_size_from_width)
                     };
 
-                    let candle_width = 0.1 * chart.cell_width;
+                    let candle_width = self.kind.candle_width_ratio() * chart.cell_width;
                     let content_spacing = ContentGaps::from_view(candle_width, chart.scaling);
 
                     let imbalance = studies.iter().find_map(|study| {
@@ -921,6 +1022,7 @@ impl canvas::Program<Message> for KlineChart {
                         *clusters,
                         content_spacing,
                         imbalance.is_some(),
+                        self.kind.cluster_width_factor(),
                     );
 
                     render_data_source(
@@ -950,6 +1052,9 @@ impl canvas::Program<Message> for KlineChart {
                                 trades,
                                 *clusters,
                                 content_spacing,
+                                self.kind.cluster_width_factor(),
+                                self.kind.candle_body_ratio(),
+                                self.kind.wick_thickness(),
                             );
                         },
                     );
@@ -1025,6 +1130,8 @@ fn draw_footprint_kline(
     candle_width: f32,
     kline: &Kline,
     palette: &Extended,
+    candle_body_ratio: f32,
+    wick_thickness: f32,
 ) {
     let y_open = price_to_y(kline.open);
     let y_high = price_to_y(kline.high);
@@ -1036,9 +1143,10 @@ fn draw_footprint_kline(
     } else {
         palette.danger.weak.color
     };
+    let body_width = candle_width * candle_body_ratio;
     frame.fill_rectangle(
-        Point::new(x_position - (candle_width / 8.0), y_open.min(y_close)),
-        Size::new(candle_width / 4.0, (y_open - y_close).abs()),
+        Point::new(x_position - (body_width / 2.0), y_open.min(y_close)),
+        Size::new(body_width, (y_open - y_close).abs()),
         body_color,
     );
 
@@ -1049,7 +1157,7 @@ fn draw_footprint_kline(
     };
     let marker_line = Stroke::with_color(
         Stroke {
-            width: 1.0,
+            width: wick_thickness,
             ..Default::default()
         },
         wick_color.scale_alpha(0.6),
@@ -1158,6 +1266,7 @@ fn draw_all_npocs(
     cluster_kind: ClusterKind,
     spacing: ContentGaps,
     imb_study_on: bool,
+    cluster_width_factor: f32,
 ) {
     let Some(lookback) = studies.iter().find_map(|study| {
         if let FootprintStudy::NPoC { lookback } = study {
@@ -1180,7 +1289,7 @@ fn draw_all_npocs(
 
     let line_height = cell_height.min(1.0);
 
-    let bar_width_factor: f32 = 0.9;
+    let bar_width_factor: f32 = cluster_width_factor;
     let inset = (cell_width * (1.0 - bar_width_factor)) / 2.0;
 
     let candle_lane_factor: f32 = match cluster_kind {
@@ -1346,10 +1455,13 @@ fn draw_clusters(
     footprint: &KlineTrades,
     cluster_kind: ClusterKind,
     spacing: ContentGaps,
+    cluster_width_factor: f32,
+    candle_body_ratio: f32,
+    wick_thickness: f32,
 ) {
     let text_color = palette.background.weakest.text;
 
-    let bar_width_factor: f32 = 0.9;
+    let bar_width_factor: f32 = cluster_width_factor;
     let inset = (cell_width * (1.0 - bar_width_factor)) / 2.0;
 
     let cell_left = x_position - (cell_width / 2.0);
@@ -1466,6 +1578,8 @@ fn draw_clusters(
                 candle_width,
                 kline,
                 palette,
+                candle_body_ratio,
+                wick_thickness,
             );
         }
         ClusterKind::BidAsk => {
@@ -1579,6 +1693,8 @@ fn draw_clusters(
                 candle_width,
                 kline,
                 palette,
+                candle_body_ratio,
+                wick_thickness,
             );
         }
     }
