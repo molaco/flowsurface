@@ -64,6 +64,7 @@ struct Flowsurface {
     timezone: data::UserTimezone,
     theme: data::Theme,
     notifications: Vec<Toast>,
+    db_manager: Option<std::sync::Arc<data::db::DatabaseManager>>,
 }
 
 #[derive(Debug, Clone)]
@@ -105,6 +106,9 @@ impl Flowsurface {
 
         let (sidebar, launch_sidebar) = dashboard::Sidebar::new(&saved_state);
 
+        // Initialize DatabaseManager if environment variable is set
+        let db_manager = Self::initialize_database_manager();
+
         let mut state = Self {
             main_window: window::Window::new(main_window_id),
             layout_manager: saved_state.layout_manager,
@@ -117,7 +121,15 @@ impl Flowsurface {
             preferred_currency: saved_state.preferred_currency,
             theme: saved_state.theme,
             notifications: vec![],
+            db_manager,
         };
+
+        // Update all dashboards with db_manager
+        if let Some(ref db_manager) = state.db_manager {
+            for (_, dashboard) in state.layout_manager.layouts.values_mut() {
+                dashboard.set_db_manager(Some(db_manager.clone()));
+            }
+        }
 
         let last_active_layout = state.layout_manager.active_layout();
         let load_layout = state.load_layout(last_active_layout, main_window_id);
@@ -437,6 +449,7 @@ impl Flowsurface {
                                 configuration(ser_dashboard.pane.clone()),
                                 popout_windows,
                                 layout.id,
+                                self.db_manager.clone(),
                             );
 
                             manager.layout_order.push(new_layout.id);
@@ -615,6 +628,30 @@ impl Flowsurface {
             tick,
             hotkeys,
         ])
+    }
+
+    /// Initialize DatabaseManager if FLOWSURFACE_USE_DUCKDB environment variable is set
+    fn initialize_database_manager() -> Option<std::sync::Arc<data::db::DatabaseManager>> {
+        match std::env::var("FLOWSURFACE_USE_DUCKDB") {
+            Ok(value) if value == "1" || value.to_lowercase() == "true" => {
+                let db_path = data::data_path(Some("flowsurface.duckdb"));
+
+                match data::db::DatabaseManager::new(&db_path) {
+                    Ok(manager) => {
+                        log::info!("Database initialized at {} for dual-write persistence", db_path.display());
+                        Some(std::sync::Arc::new(manager))
+                    }
+                    Err(e) => {
+                        log::error!("Failed to initialize database: {}. Running without database persistence.", e);
+                        None
+                    }
+                }
+            }
+            _ => {
+                log::info!("Database persistence disabled (FLOWSURFACE_USE_DUCKDB not set)");
+                None
+            }
+        }
     }
 
     fn active_dashboard(&self) -> &Dashboard {

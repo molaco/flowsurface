@@ -2,10 +2,14 @@ pub mod aggr;
 pub mod audio;
 pub mod chart;
 pub mod config;
+pub mod db;
 pub mod layout;
 pub mod log;
 pub mod tickers_table;
 pub mod util;
+
+#[cfg(test)]
+mod tests;
 
 use std::fs::File;
 use std::io::{Read, Write};
@@ -181,8 +185,60 @@ pub fn cleanup_old_market_data() -> usize {
         )))
     });
 
-    let total_deleted: usize = paths.iter().map(cleanup_directory).sum();
+    let mut total_deleted: usize = paths.iter().map(cleanup_directory).sum();
 
-    info!("File cleanup completed. Deleted {} files", total_deleted);
+    // Also cleanup database if enabled
+    if let Ok(value) = std::env::var("FLOWSURFACE_USE_DUCKDB")
+        && (value == "1" || value.to_lowercase() == "true")
+    {
+        let db_path = data_path(Some("flowsurface.duckdb"));
+
+        if db_path.exists() {
+            match db::DatabaseManager::new(&db_path) {
+                Ok(db_manager) => {
+                    // Delete trades older than 4 days
+                    let cutoff_time = chrono::Local::now()
+                        .date_naive()
+                        .and_hms_opt(0, 0, 0)
+                        .unwrap()
+                        .and_utc()
+                        .timestamp_millis() as u64
+                        - (4 * 24 * 60 * 60 * 1000); // 4 days in milliseconds
+
+                    use db::{TradesCRUD, KlinesCRUD};
+
+                    match db_manager.delete_trades_older_than(cutoff_time) {
+                        Ok(count) => {
+                            info!("Deleted {} trades from database (older than 4 days)", count);
+                            total_deleted += count;
+                        }
+                        Err(e) => {
+                            error!("Failed to delete old trades from database: {}", e);
+                        }
+                    }
+
+                    match db_manager.delete_klines_older_than(cutoff_time) {
+                        Ok(count) => {
+                            info!("Deleted {} klines from database (older than 4 days)", count);
+                            total_deleted += count;
+                        }
+                        Err(e) => {
+                            error!("Failed to delete old klines from database: {}", e);
+                        }
+                    }
+
+                    // Run vacuum to reclaim disk space
+                    if let Err(e) = db_manager.vacuum() {
+                        error!("Failed to vacuum database: {}", e);
+                    }
+                }
+                Err(e) => {
+                    error!("Failed to open database for cleanup: {}", e);
+                }
+            }
+        }
+    }
+
+    info!("Cleanup completed. Deleted {} files/records total", total_deleted);
     total_deleted
 }

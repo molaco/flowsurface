@@ -18,7 +18,7 @@ use exchange::{
     Kline, PushFrequency, TickMultiplier, TickerInfo, Timeframe, Trade,
     adapter::{
         self, AdapterError, Exchange, PersistStreamKind, ResolvedStream, StreamConfig, StreamKind,
-        StreamTicksize, UniqueStreams, binance, bybit, hyperliquid, okex,
+        StreamTicksize, UniqueStreams, aster, binance, bybit, hyperliquid, okex,
     },
     depth::Depth,
     fetcher::{FetchRange, FetchedData},
@@ -57,6 +57,7 @@ pub struct Dashboard {
     pub popout: HashMap<window::Id, (pane_grid::State<pane::State>, WindowSpec)>,
     pub streams: UniqueStreams,
     layout_id: uuid::Uuid,
+    db_manager: Option<std::sync::Arc<data::db::DatabaseManager>>,
 }
 
 impl Default for Dashboard {
@@ -67,6 +68,7 @@ impl Default for Dashboard {
             streams: UniqueStreams::default(),
             popout: HashMap::new(),
             layout_id: uuid::Uuid::new_v4(),
+            db_manager: None,
         }
     }
 }
@@ -115,6 +117,7 @@ impl Dashboard {
         panes: Configuration<pane::State>,
         popout_windows: Vec<(Configuration<pane::State>, WindowSpec)>,
         layout_id: uuid::Uuid,
+        db_manager: Option<std::sync::Arc<data::db::DatabaseManager>>,
     ) -> Self {
         let panes = pane_grid::State::with_configuration(panes);
 
@@ -133,6 +136,7 @@ impl Dashboard {
             streams: UniqueStreams::default(),
             popout,
             layout_id,
+            db_manager,
         }
     }
 
@@ -1196,6 +1200,16 @@ impl Dashboard {
         data: FetchedData,
         stream_type: StreamKind,
     ) -> Task<Message> {
+        // Persist data to database before distributing to in-memory structures (dual-write)
+        let ticker_info = match &stream_type {
+            StreamKind::Kline { ticker_info, .. } => Some(ticker_info),
+            StreamKind::DepthAndTrades { ticker_info, .. } => Some(ticker_info),
+        };
+
+        if let Some(ticker_info) = ticker_info {
+            self.persist_fetched_data(ticker_info, &data, &stream_type);
+        }
+
         match data {
             FetchedData::Trades { batch, until_time } => {
                 let last_trade_time = batch.last().map_or(0, |trade| trade.time);
@@ -1241,6 +1255,54 @@ impl Dashboard {
         }
 
         Task::none()
+    }
+
+    /// Set database manager for dual-write persistence
+    pub fn set_db_manager(&mut self, db_manager: Option<std::sync::Arc<data::db::DatabaseManager>>) {
+        self.db_manager = db_manager;
+    }
+
+    /// Persist fetched data to database before distributing to panes
+    fn persist_fetched_data(
+        &self,
+        ticker_info: &TickerInfo,
+        data: &FetchedData,
+        stream_type: &StreamKind,
+    ) {
+        if let Some(ref db_manager) = self.db_manager {
+            let result = match data {
+                FetchedData::Trades { batch, .. } => {
+                    use data::db::TradesCRUD;
+                    db_manager.insert_trades(ticker_info, batch)
+                        .map(|count| {
+                            if count > 0 {
+                                log::info!("✓ Persisted {} trades to database for {:?}", count, ticker_info.ticker);
+                            }
+                        })
+                }
+                FetchedData::Klines { data: klines, .. } => {
+                    if let StreamKind::Kline { timeframe, .. } = stream_type {
+                        use data::db::KlinesCRUD;
+                        db_manager.insert_klines(ticker_info, *timeframe, klines)
+                            .map(|count| {
+                                if count > 0 {
+                                    log::info!("✓ Persisted {} klines to database for {:?} {:?}", count, ticker_info.ticker, timeframe);
+                                }
+                            })
+                    } else {
+                        Ok(())
+                    }
+                }
+                FetchedData::OI { .. } => {
+                    // Open interest persistence can be added in the future
+                    Ok(())
+                }
+            };
+
+            if let Err(e) = result {
+                log::error!("Failed to persist data to database: {}", e);
+            }
+        }
     }
 
     fn insert_fetched_trades(
@@ -1692,6 +1754,12 @@ pub fn depth_subscription(
     let config = StreamConfig::new(ticker_info, exchange, tick_mlpt, push_freq);
 
     match exchange {
+        Exchange::AsterLinear => {
+            let builder = |cfg: &StreamConfig<TickerInfo>| {
+                aster::connect_market_stream(cfg.id, cfg.push_freq)
+            };
+            Subscription::run_with(config, builder)
+        }
         Exchange::BinanceSpot | Exchange::BinanceInverse | Exchange::BinanceLinear => {
             let builder = |cfg: &StreamConfig<TickerInfo>| {
                 binance::connect_market_stream(cfg.id, cfg.push_freq)
@@ -1724,6 +1792,12 @@ pub fn kline_subscription(
 ) -> Subscription<exchange::Event> {
     let config = StreamConfig::new(kline_subs, exchange, None, PushFrequency::ServerDefault);
     match exchange {
+        Exchange::AsterLinear => {
+            let builder = |cfg: &StreamConfig<Vec<(TickerInfo, Timeframe)>>| {
+                aster::connect_kline_stream(cfg.id.clone(), cfg.market_type)
+            };
+            Subscription::run_with(config, builder)
+        }
         Exchange::BinanceSpot | Exchange::BinanceInverse | Exchange::BinanceLinear => {
             let builder = |cfg: &StreamConfig<Vec<(TickerInfo, Timeframe)>>| {
                 binance::connect_kline_stream(cfg.id.clone(), cfg.market_type)

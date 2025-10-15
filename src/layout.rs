@@ -259,6 +259,7 @@ pub fn load_saved_state() -> SavedState {
                     configuration(layout.dashboard.pane.clone()),
                     popout_windows,
                     layout_id,
+                    None, // db_manager will be set after initialization
                 );
 
                 de_layouts.push((layout.name.clone(), layout_id, dashboard));
