@@ -34,8 +34,20 @@ pub fn path() -> Result<PathBuf, Error> {
 pub enum Error {
     #[error(transparent)]
     Io(#[from] io::Error),
-    #[error(transparent)]
-    SetLog(#[from] log::SetLoggerError),
-    #[error(transparent)]
-    ParseLevel(#[from] log::ParseLevelError),
+    #[error("Failed to set logger: {0}")]
+    SetLog(log::SetLoggerError),
+    #[error("Failed to parse log level: {0}")]
+    ParseLevel(log::ParseLevelError),
+}
+
+impl From<log::SetLoggerError> for Error {
+    fn from(err: log::SetLoggerError) -> Self {
+        Error::SetLog(err)
+    }
+}
+
+impl From<log::ParseLevelError> for Error {
+    fn from(err: log::ParseLevelError) -> Self {
+        Error::ParseLevel(err)
+    }
 }

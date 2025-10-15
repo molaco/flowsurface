@@ -208,6 +208,7 @@ impl SerTicker {
 
     fn exchange_to_string(exchange: Exchange) -> &'static str {
         match exchange {
+            Exchange::AsterLinear => "AsterLinear",
             Exchange::BinanceLinear => "BinanceLinear",
             Exchange::BinanceInverse => "BinanceInverse",
             Exchange::BinanceSpot => "BinanceSpot",
@@ -224,6 +225,7 @@ impl SerTicker {
 
     fn string_to_exchange(s: &str) -> Result<Exchange, String> {
         match s {
+            "AsterLinear" => Ok(Exchange::AsterLinear),
             "BinanceLinear" => Ok(Exchange::BinanceLinear),
             "BinanceInverse" => Ok(Exchange::BinanceInverse),
             "BinanceSpot" => Ok(Exchange::BinanceSpot),

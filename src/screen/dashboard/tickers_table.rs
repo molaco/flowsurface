@@ -544,6 +544,7 @@ impl TickersTable {
             let inverse_markets_btn = self.market_filter_btn("Inverse", MarketKind::InversePerps);
 
             let exchange_filters = column![
+                self.exchange_filter_btn(ExchangeInclusive::Aster, Exchange::AsterLinear, "Aster"),
                 self.exchange_filter_btn(ExchangeInclusive::Bybit, Exchange::BybitLinear, "Bybit"),
                 self.exchange_filter_btn(
                     ExchangeInclusive::Binance,

@@ -9,6 +9,7 @@ use rustc_hash::{FxHashMap, FxHashSet};
 use serde::{Deserialize, Serialize};
 use std::{collections::HashMap, str::FromStr};
 
+pub mod aster;
 pub mod binance;
 pub mod bybit;
 pub mod hyperliquid;
@@ -391,6 +392,7 @@ pub struct StreamSpecs {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub enum ExchangeInclusive {
+    Aster,
     Bybit,
     Binance,
     Hyperliquid,
@@ -398,7 +400,8 @@ pub enum ExchangeInclusive {
 }
 
 impl ExchangeInclusive {
-    pub const ALL: [ExchangeInclusive; 4] = [
+    pub const ALL: [ExchangeInclusive; 5] = [
+        ExchangeInclusive::Aster,
         ExchangeInclusive::Bybit,
         ExchangeInclusive::Binance,
         ExchangeInclusive::Hyperliquid,
@@ -407,6 +410,7 @@ impl ExchangeInclusive {
 
     pub fn of(ex: Exchange) -> Self {
         match ex {
+            Exchange::AsterLinear => Self::Aster,
             Exchange::BybitLinear | Exchange::BybitInverse | Exchange::BybitSpot => Self::Bybit,
             Exchange::BinanceLinear | Exchange::BinanceInverse | Exchange::BinanceSpot => {
                 Self::Binance
@@ -419,6 +423,7 @@ impl ExchangeInclusive {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Deserialize, Serialize, Enum)]
 pub enum Exchange {
+    AsterLinear,
     BinanceLinear,
     BinanceInverse,
     BinanceSpot,
@@ -438,6 +443,7 @@ impl std::fmt::Display for Exchange {
             f,
             "{}",
             match self {
+                Exchange::AsterLinear => "Aster Linear",
                 Exchange::BinanceLinear => "Binance Linear",
                 Exchange::BinanceInverse => "Binance Inverse",
                 Exchange::BinanceSpot => "Binance Spot",
@@ -459,6 +465,7 @@ impl FromStr for Exchange {
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         match s {
+            "Aster Linear" => Ok(Exchange::AsterLinear),
             "Binance Linear" => Ok(Exchange::BinanceLinear),
             "Binance Inverse" => Ok(Exchange::BinanceInverse),
             "Binance Spot" => Ok(Exchange::BinanceSpot),
@@ -476,7 +483,8 @@ impl FromStr for Exchange {
 }
 
 impl Exchange {
-    pub const ALL: [Exchange; 11] = [
+    pub const ALL: [Exchange; 12] = [
+        Exchange::AsterLinear,
         Exchange::BinanceLinear,
         Exchange::BinanceInverse,
         Exchange::BinanceSpot,
@@ -492,7 +500,8 @@ impl Exchange {
 
     pub fn market_type(&self) -> MarketKind {
         match self {
-            Exchange::BinanceLinear
+            Exchange::AsterLinear
+            | Exchange::BinanceLinear
             | Exchange::BybitLinear
             | Exchange::HyperliquidLinear
             | Exchange::OkexLinear => MarketKind::LinearPerps,
@@ -507,9 +516,18 @@ impl Exchange {
     }
 
     pub fn is_depth_client_aggr(&self) -> bool {
-        !matches!(
+        matches!(
             self,
-            Exchange::HyperliquidLinear | Exchange::HyperliquidSpot
+            Exchange::AsterLinear
+                | Exchange::BinanceLinear
+                | Exchange::BinanceInverse
+                | Exchange::BinanceSpot
+                | Exchange::BybitLinear
+                | Exchange::BybitInverse
+                | Exchange::BybitSpot
+                | Exchange::OkexLinear
+                | Exchange::OkexInverse
+                | Exchange::OkexSpot
         )
     }
 
@@ -548,7 +566,8 @@ impl Exchange {
     pub fn is_perps(&self) -> bool {
         matches!(
             self,
-            Exchange::BinanceLinear
+            Exchange::AsterLinear
+                | Exchange::BinanceLinear
                 | Exchange::BinanceInverse
                 | Exchange::BybitLinear
                 | Exchange::BybitInverse
@@ -598,6 +617,7 @@ pub async fn fetch_ticker_info(
     let market_type = exchange.market_type();
 
     match exchange {
+        Exchange::AsterLinear => aster::fetch_ticksize(market_type).await,
         Exchange::BinanceLinear | Exchange::BinanceInverse | Exchange::BinanceSpot => {
             binance::fetch_ticksize(market_type).await
         }
@@ -619,6 +639,7 @@ pub async fn fetch_ticker_prices(
     let market_type = exchange.market_type();
 
     match exchange {
+        Exchange::AsterLinear => aster::fetch_ticker_prices(market_type).await,
         Exchange::BinanceLinear | Exchange::BinanceInverse | Exchange::BinanceSpot => {
             binance::fetch_ticker_prices(market_type).await
         }
@@ -640,6 +661,7 @@ pub async fn fetch_klines(
     range: Option<(u64, u64)>,
 ) -> Result<Vec<Kline>, AdapterError> {
     match ticker_info.ticker.exchange {
+        Exchange::AsterLinear => aster::fetch_klines(ticker_info, timeframe, range).await,
         Exchange::BinanceLinear | Exchange::BinanceInverse | Exchange::BinanceSpot => {
             binance::fetch_klines(ticker_info, timeframe, range).await
         }
@@ -661,6 +683,9 @@ pub async fn fetch_open_interest(
     range: Option<(u64, u64)>,
 ) -> Result<Vec<OpenInterest>, AdapterError> {
     match ticker.exchange {
+        Exchange::AsterLinear => {
+            aster::fetch_historical_oi(ticker, range, timeframe).await
+        }
         Exchange::BinanceLinear | Exchange::BinanceInverse => {
             binance::fetch_historical_oi(ticker, range, timeframe).await
         }
@@ -670,6 +695,6 @@ pub async fn fetch_open_interest(
         Exchange::OkexLinear | Exchange::OkexInverse => {
             okex::fetch_historical_oi(ticker, range, timeframe).await
         }
-        _ => Err(AdapterError::InvalidRequest("Invalid exchange".to_string())),
+        _ => Err(AdapterError::InvalidRequest("Open interest not available for this exchange or market type".to_string())),
     }
 }

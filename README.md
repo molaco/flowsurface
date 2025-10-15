@@ -1,6 +1,6 @@
 # Flowsurface
 
-An experimental open-source desktop charting application. Supports Binance, Bybit, Hyperliquid and OKX
+An experimental open-source desktop charting application. Supports Binance, Bybit, Hyperliquid, OKX and Aster DEX (perpetuals only)
 
 <div align="center">
   <img width="2330" height="1440" alt="overview-layout-1" src="https://github.com/user-attachments/assets/7875117e-2475-4549-ac8c-6d350dacdb75" />
@@ -24,6 +24,16 @@ An experimental open-source desktop charting application. Supports Binance, Bybi
 </div>
 
 ##### Market data is received directly from exchanges' public REST APIs and WebSockets.
+
+### Supported Exchanges
+
+| Exchange | Spot | Linear Perps | Inverse Perps | Open Interest | Server-side Depth Aggregation |
+|----------|------|--------------|---------------|---------------|-------------------------------|
+| Binance  | ✅   | ✅           | ✅            | ✅            | ❌                            |
+| Bybit    | ✅   | ✅           | ✅            | ✅            | ✅                            |
+| Hyperliquid | ✅ | ✅         | ❌            | ❌            | ✅                            |
+| OKX      | ✅   | ✅           | ✅            | ✅            | ❌                            |
+| Aster DEX | ❌   | ✅          | ❌            | ✅            | ❌                            |
 
 #### Historical Trades on Footprint Charts
 

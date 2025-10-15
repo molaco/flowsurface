@@ -1,0 +1,9 @@
+# Seeds for failure cases proptest has generated in the past. It is
+# automatically read and these particular cases re-run before any
+# novel cases are generated.
+#
+# It is recommended to check this file in to source control so that
+# everyone who runs the test benefits from these saved cases.
+cc 26a616c3c71393c7a9585abe8f1f173857d5054a7b86fb3e14a0718a0ae7f7f5 # shrinks to price = 1.0
+cc 3a1c1d8d3644ac0d659d92baa0391fba29f6a875c7ed4bd7b08226bf6aedf7e6 # shrinks to trade = Trade { time: 1577836800000, is_sell: false, price: Price { units: 100000000 }, qty: 0.001 }
+cc e3a74b027e7b2b66a294ebfee6eeecb1dd7c3de386cfc2b0a9714c88ecd610a2 # shrinks to trades = [Trade { time: 1577836800000, is_sell: false, price: Price { units: 100000000 }, qty: 0.001 }, Trade { time: 1577836800000, is_sell: false, price: Price { units: 100000000 }, qty: 0.001 }, Trade { time: 1577836800000, is_sell: false, price: Price { units: 100000000 }, qty: 0.001 }, Trade { time: 1577836800000, is_sell: false, price: Price { units: 100000000 }, qty: 0.001 }, Trade { time: 1577836800000, is_sell: false, price: Price { units: 100000000 }, qty: 0.001 }, Trade { time: 1577836800000, is_sell: false, price: Price { units: 100000000 }, qty: 0.001 }, Trade { time: 1577836800000, is_sell: false, price: Price { units: 100000000 }, qty: 0.001 }, Trade { time: 1577836800000, is_sell: false, price: Price { units: 100000000 }, qty: 0.001 }, Trade { time: 1577836800000, is_sell: false, price: Price { units: 100000000 }, qty: 0.001 }, Trade { time: 1577836800000, is_sell: false, price: Price { units: 100000000 }, qty: 0.001 }]
