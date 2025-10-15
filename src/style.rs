@@ -30,6 +30,7 @@ pub enum Icon {
     Layout,
     Cog,
     Link,
+    AsterLogo,
     BinanceLogo,
     BybitLogo,
     HyperliquidLogo,
@@ -53,6 +54,7 @@ pub enum Icon {
     DragHandle,
     Folder,
     ExternalLink,
+    Database,
 }
 
 impl From<Icon> for char {
@@ -66,6 +68,7 @@ impl From<Icon> for char {
             Icon::Close => '\u{E805}',
             Icon::Layout => '\u{E806}',
             Icon::Link => '\u{E807}',
+            Icon::AsterLogo => '\u{E820}',
             Icon::BybitLogo => '\u{E808}',
             Icon::BinanceLogo => '\u{E809}',
             Icon::HyperliquidLogo => '\u{E813}',
@@ -89,6 +92,7 @@ impl From<Icon> for char {
             Icon::DragHandle => '\u{E817}',
             Icon::Folder => '\u{F114}',
             Icon::ExternalLink => '\u{F14C}',
+            Icon::Database => '\u{F1C0}',
         }
     }
 }
@@ -101,6 +105,7 @@ pub fn icon_text<'a>(icon: Icon, size: u16) -> Text<'a, Theme, Renderer> {
 
 pub fn exchange_icon(exchange: Exchange) -> Icon {
     match exchange {
+        Exchange::AsterLinear => Icon::AsterLogo,
         Exchange::BybitInverse | Exchange::BybitLinear | Exchange::BybitSpot => Icon::BybitLogo,
         Exchange::BinanceInverse | Exchange::BinanceLinear | Exchange::BinanceSpot => {
             Icon::BinanceLogo

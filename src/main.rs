@@ -57,6 +57,7 @@ struct Flowsurface {
     sidebar: dashboard::Sidebar,
     layout_manager: LayoutManager,
     theme_editor: ThemeEditor,
+    database_manager: modal::DbManager,
     audio_stream: audio::AudioStream,
     confirm_dialog: Option<(String, Box<Message>)>,
     preferred_currency: exchange::PreferredCurrency,
@@ -85,6 +86,7 @@ enum Message {
     RemoveNotification(usize),
     ToggleDialogModal(Option<(String, Box<Message>)>),
     ThemeEditor(modal::theme_editor::Message),
+    DatabaseManager(modal::database_manager::Message),
     Layouts(modal::layout_manager::Message),
     AudioStream(modal::audio::Message),
 }
@@ -113,6 +115,7 @@ impl Flowsurface {
             main_window: window::Window::new(main_window_id),
             layout_manager: saved_state.layout_manager,
             theme_editor: ThemeEditor::new(saved_state.custom_theme),
+            database_manager: modal::DbManager::new(db_manager.clone()),
             audio_stream: audio::AudioStream::new(saved_state.audio_cfg),
             sidebar,
             confirm_dialog: None,
@@ -485,6 +488,10 @@ impl Flowsurface {
                     }
                     None => {}
                 }
+            }
+            Message::DatabaseManager(msg) => {
+                let (task, _action) = self.database_manager.update(msg);
+                return task.map(Message::DatabaseManager);
             }
             Message::Sidebar(message) => {
                 let (task, action) = self.sidebar.update(message);
@@ -1008,6 +1015,21 @@ impl Flowsurface {
                     Message::Sidebar(dashboard::sidebar::Message::ToggleSidebarMenu(None)),
                     padding,
                     Alignment::End,
+                    align_x,
+                )
+            }
+            sidebar::Menu::Database => {
+                let (align_x, padding) = match sidebar_pos {
+                    sidebar::Position::Left => (Alignment::Start, padding::left(44).top(76)),
+                    sidebar::Position::Right => (Alignment::End, padding::right(44).top(76)),
+                };
+
+                dashboard_modal(
+                    base,
+                    self.database_manager.view().map(Message::DatabaseManager),
+                    Message::Sidebar(dashboard::sidebar::Message::ToggleSidebarMenu(None)),
+                    padding,
+                    Alignment::Start,
                     align_x,
                 )
             }

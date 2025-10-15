@@ -119,6 +119,15 @@ pub struct DatabaseManager {
     metrics: PerformanceMetrics,
 }
 
+impl std::fmt::Debug for DatabaseManager {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("DatabaseManager")
+            .field("db_path", &self.db_path)
+            .field("query_cache", &self.query_cache)
+            .finish_non_exhaustive()
+    }
+}
+
 impl DatabaseManager {
     /// Create a new DatabaseManager with default configuration
     ///

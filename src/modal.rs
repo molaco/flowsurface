@@ -1,10 +1,12 @@
 pub mod audio;
+pub mod database_manager;
 pub mod layout_manager;
 pub mod pane;
 pub mod theme_editor;
 
 use iced::widget::{center, container, mouse_area, opaque, stack};
 use iced::{Alignment, Color, Element, Length, padding};
+pub use database_manager::DatabaseManager as DbManager;
 pub use layout_manager::LayoutManager;
 pub use pane::indicators;
 pub use pane::stream::{self, ModifierKind};
