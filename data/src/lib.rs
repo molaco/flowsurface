@@ -5,6 +5,7 @@ pub mod config;
 pub mod db;
 pub mod layout;
 pub mod log;
+pub mod panel;
 pub mod tickers_table;
 pub mod util;
 
