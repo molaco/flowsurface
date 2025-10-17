@@ -67,7 +67,10 @@ impl Chart for KlineChart {
                 continue;
             }
             if let Some(indi) = self.indicators[*selected_indicator].as_ref() {
-                elements.push(indi.element(chart_state, earliest..=latest));
+                // Skip overlay-only indicators (they're drawn on main chart)
+                if !indi.is_overlay_only() {
+                    elements.push(indi.element(chart_state, earliest..=latest));
+                }
             }
         }
         elements
@@ -895,7 +898,11 @@ impl KlineChart {
     }
 
     pub fn toggle_indicator(&mut self, indicator: KlineIndicator) {
-        let prev_indi_count = self.indicators.values().filter(|v| v.is_some()).count();
+        // Count only non-overlay indicators for panel splits
+        let prev_indi_count = self.indicators.values()
+            .filter_map(Option::as_ref)
+            .filter(|indi| !indi.is_overlay_only())
+            .count();
 
         if self.indicators[indicator].is_some() {
             self.indicators[indicator] = None;
@@ -906,7 +913,11 @@ impl KlineChart {
         }
 
         if let Some(main_split) = self.chart.layout.splits.first() {
-            let current_indi_count = self.indicators.values().filter(|v| v.is_some()).count();
+            // Count only non-overlay indicators for panel splits
+            let current_indi_count = self.indicators.values()
+                .filter_map(Option::as_ref)
+                .filter(|indi| !indi.is_overlay_only())
+                .count();
             self.chart.layout.splits = data::util::calc_panel_splits(
                 *main_split,
                 current_indi_count,
@@ -1099,6 +1110,11 @@ impl canvas::Program<Message> for KlineChart {
             }
 
             chart.draw_last_price_line(frame, palette, region);
+
+            // Draw overlay indicators (e.g., Moving Average)
+            for indicator in self.indicators.values().filter_map(Option::as_ref) {
+                indicator.draw_overlay(frame, chart, earliest..=latest, theme);
+            }
         });
 
         let crosshair = chart.cache.crosshair.draw(renderer, bounds_size, |frame| {
