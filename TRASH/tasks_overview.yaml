@@ -1,0 +1,959 @@
+task:
+  id: 1
+  name: "Foundation Setup - Database Infrastructure"
+
+  overview:
+    purpose: |
+      Establish the foundational database infrastructure for FlowSurface by integrating DuckDB
+      as a dependency and creating the core DatabaseManager abstraction. This task lays the
+      groundwork for all subsequent database operations by providing connection management,
+      schema initialization, and basic database lifecycle operations.
+
+    motivation: |
+      FlowSurface currently relies entirely on in-memory data structures with no persistent
+      storage layer for market data. This creates limitations for historical analysis,
+      increases memory consumption during long-running sessions, and results in data loss
+      on application restart. A robust database foundation is required before any CRUD
+      operations or data migration can occur.
+
+    outcome: |
+      The application will have a working DatabaseManager that can create, open, and manage
+      DuckDB database connections. The schema will be automatically initialized on first run,
+      and connection management will be thread-safe and efficient for the single-writer,
+      multiple-reader pattern used throughout FlowSurface.
+
+  scope_summary:
+    description: "Creates database module structure with connection management and schema initialization"
+    files_affected: 4
+    functions_added: 6
+    tests_required: 8
+    complexity: "moderate"
+    estimated_effort: "2-3 days"
+
+  key_components:
+    - component: "DatabaseManager"
+      type: "struct"
+      purpose: "Central abstraction for all database operations with thread-safe connection management"
+
+    - component: "schema.sql"
+      type: "module"
+      purpose: "DDL statements for all tables, indexes, and views required by the system"
+
+    - component: "migrations module"
+      type: "module"
+      purpose: "Schema versioning and upgrade path management for future schema changes"
+
+    - component: "with_conn method"
+      type: "function"
+      purpose: "Provides safe access to database connection through closure-based API"
+
+  implementation_hints:
+    approach: |
+      Follow Rust database patterns using Arc<Mutex<Connection>> for thread-safe access.
+      Embed schema.sql using include_str! macro to ensure schema is always in sync with
+      code. Implement builder pattern for DatabaseManager to allow configuration of memory
+      limits and temp directories.
+
+    key_considerations:
+      - "DuckDB uses single-writer MVCC model - one connection is optimal for FlowSurface's architecture"
+      - "Schema must be initialized atomically on first run to prevent partial initialization"
+      - "Memory limits should be configurable but default to 8GB for trading workloads"
+      - "Connection must be reused across operations to leverage DuckDB's internal caching"
+      - "Error types should be rich enough to distinguish schema errors from connection errors"
+
+    integration_points:
+      - "Will be initialized in main.rs before Flowsurface app struct creation"
+      - "DatabaseManager will be passed to Flowsurface struct and distributed to components needing persistence"
+      - "Schema must align with existing data structures in data/src/aggr and data/src/chart modules"
+
+  testing_overview:
+    strategy: "mixed"
+
+    rationale: |
+      Unit tests verify connection management and schema initialization in isolation using
+      in-memory databases. Integration tests verify that the schema can handle realistic
+      data volumes and that connection lifecycle works correctly under concurrent access patterns.
+
+    critical_properties:
+      - "Connection can be acquired and released multiple times without resource leaks"
+      - "Schema initialization is idempotent - running twice produces same result"
+      - "Multiple threads can safely query through with_conn without deadlocks"
+      - "Database file is created at correct location with proper permissions"
+
+    verification_needs:
+      formal_verification: false
+      property_testing: false
+      concurrency_testing: true
+      integration_testing: true
+
+    estimated_test_count: 8
+
+  dependencies:
+    requires_completion_of: []
+
+    enables_start_of:
+      - task_id: 2
+        reason: "CRUD operations require DatabaseManager to exist and be functional"
+      - task_id: 3
+        reason: "Migration logic needs database connection and schema to be available"
+
+    parallel_with: []
+
+  acceptance_criteria:
+    - "DatabaseManager::new() successfully creates database file at specified path"
+    - "All tables defined in schema.sql are created on first initialization"
+    - "Indexes and constraints are properly applied as specified in schema"
+    - "with_conn() provides safe concurrent access from multiple threads"
+    - "Connection can execute basic queries (SELECT 1) without errors"
+    - "Tests verify connection lifecycle and schema initialization correctness"
+    - "Memory limits and temp directory can be configured programmatically"
+    - "Database file size starts small (<1MB) and can grow as data is added"
+
+  risk_assessment:
+    complexity_risk: "medium"
+    integration_risk: "low"
+    testing_risk: "low"
+
+    concerns:
+      - "DuckDB bundled feature increases binary size significantly"
+      - "Schema changes in future will require migration strategy to be robust"
+      - "Need to ensure database file location follows XDG standards on all platforms"
+
+  notes:
+    - "Use bundled DuckDB feature to avoid external dependencies and version conflicts"
+    - "Consider making schema.sql generation scriptable for future schema evolution"
+    - "DatabaseManager should expose health check methods for monitoring"
+
+---
+
+task:
+  id: 2
+  name: "CRUD Operations Implementation"
+
+  overview:
+    purpose: |
+      Implement comprehensive Create, Read, Update, Delete operations for all major data types
+      in FlowSurface: trades, klines, depth snapshots, footprint data, and order runs. These
+      operations form the persistence layer that bridges in-memory data structures with DuckDB
+      storage.
+
+    motivation: |
+      The database schema alone provides no value without efficient methods to persist and
+      retrieve data. CRUD operations must be optimized for FlowSurface's specific access
+      patterns: high-frequency trade inserts, time-range queries for chart rendering, and
+      efficient reconstruction of complex aggregated data structures like footprints and
+      heatmaps.
+
+    outcome: |
+      All major data types can be efficiently persisted to and retrieved from DuckDB. Bulk
+      insert operations achieve >10k trades/second throughput. Query operations return data
+      in <100ms for typical time ranges. Data structures can be round-tripped through the
+      database without loss of precision or data corruption.
+
+  scope_summary:
+    description: "Implements CRUD modules for trades, klines, depth, footprint, and helper functions"
+    files_affected: 7
+    functions_added: 24
+    tests_required: 35
+    complexity: "complex"
+    estimated_effort: "1 week"
+
+  key_components:
+    - component: "TradesCRUD"
+      type: "module"
+      purpose: "Insert batches of trades efficiently and query by time range with filtering"
+
+    - component: "KlinesCRUD"
+      type: "module"
+      purpose: "Persist and retrieve klines with timeframe awareness and reconstruction into TimeSeries"
+
+    - component: "DepthCRUD"
+      type: "module"
+      purpose: "Store and query orderbook snapshots for heatmap reconstruction"
+
+    - component: "FootprintCRUD"
+      type: "module"
+      purpose: "Persist price-level aggregations within klines for footprint charts"
+
+    - component: "HelperMethods"
+      type: "module"
+      purpose: "Ticker ID resolution, exchange ID management, and common query utilities"
+
+  implementation_hints:
+    approach: |
+      Use DuckDB's Appender API for bulk inserts to achieve maximum throughput. Implement
+      prepared statements that are cached and reused for queries. Structure modules to mirror
+      the table organization in schema.sql. Provide both low-level operations (insert single
+      record) and high-level operations (load_timeseries that returns complete data structure).
+
+    key_considerations:
+      - "Use Appender for trade inserts - must achieve >10k inserts/sec to handle high-frequency data"
+      - "Price type conversion to DECIMAL(18,8) must preserve precision without floating-point errors"
+      - "Timestamp precision must support 100ms intervals for heatmap bucketing"
+      - "Query methods should return strongly-typed Rust structures, not raw SQL rows"
+      - "Ticker ID lookup should be cached to avoid repeated queries on hot path"
+
+    integration_points:
+      - "Trade struct from exchange/src/lib.rs must map cleanly to trades table"
+      - "Kline struct and TimeSeries from data/src/aggr must round-trip through database"
+      - "Depth struct from exchange/src/depth.rs serializes to multiple snapshot rows"
+      - "Helper methods integrate with existing TickerInfo abstraction"
+
+  testing_overview:
+    strategy: "mixed"
+
+    rationale: |
+      Unit tests verify each CRUD operation in isolation using in-memory DuckDB instances.
+      Property-based tests ensure round-trip correctness (insert then query returns same data).
+      Integration tests verify performance targets and behavior under realistic data volumes.
+      Benchmarks quantify insert/query performance for regression detection.
+
+    critical_properties:
+      - "Round-trip preservation: data inserted then queried returns identical values"
+      - "Bulk insert performance: 10k+ trades/sec sustained throughput"
+      - "Query performance: <100ms for 1M row scans with time-range filtering"
+      - "Precision preservation: Price values maintain 8 decimal places through conversion"
+      - "Concurrent safety: Multiple readers don't block or corrupt results"
+
+    verification_needs:
+      formal_verification: false
+      property_testing: true
+      concurrency_testing: true
+      integration_testing: true
+
+    estimated_test_count: 35
+
+  dependencies:
+    requires_completion_of:
+      - task_id: 1
+        reason: "Needs DatabaseManager and schema to be available for CRUD operations"
+
+    enables_start_of:
+      - task_id: 3
+        reason: "Migration logic uses CRUD operations to populate database from existing data"
+      - task_id: 4
+        reason: "Application integration calls CRUD operations to persist real-time data"
+
+    parallel_with: []
+
+  acceptance_criteria:
+    - "insert_trades() achieves >10,000 trades/second using Appender API"
+    - "query_trades() returns correct results for time-range queries in <100ms"
+    - "insert_klines() and query_klines() correctly handle all 11 timeframes"
+    - "load_timeseries() reconstructs TimeSeries<KlineDataPoint> from database"
+    - "Depth snapshots can be stored and retrieved without orderbook corruption"
+    - "Footprint data preserves price-level granularity and buy/sell split"
+    - "get_or_create_ticker_id() correctly handles both new and existing tickers"
+    - "All CRUD operations have comprehensive unit tests with >80% coverage"
+    - "Property tests verify round-trip correctness for all data types"
+    - "Concurrent read tests pass without deadlocks or race conditions"
+
+  risk_assessment:
+    complexity_risk: "high"
+    integration_risk: "medium"
+    testing_risk: "medium"
+
+    concerns:
+      - "Price type conversion is error-prone and must be thoroughly tested for precision"
+      - "Appender API usage patterns are not well documented - may require experimentation"
+      - "Performance targets are aggressive - may require query optimization iteration"
+      - "TimeSeries reconstruction logic is complex with potential for subtle bugs"
+
+  notes:
+    - "Consider using prepared statement cache to avoid re-parsing queries"
+    - "Benchmark both Appender and prepared INSERT to validate performance choice"
+    - "Document Price to DECIMAL conversion rationale for future maintainers"
+
+---
+
+task:
+  id: 3
+  name: "Data Migration Logic"
+
+  overview:
+    purpose: |
+      Create migration modules that convert existing data sources into DuckDB format: in-memory
+      TimeSeries structures, historical depth data, and Binance ZIP archives. Provide CLI
+      tooling for one-time migration with progress reporting, verification, and rollback
+      capabilities.
+
+    motivation: |
+      FlowSurface has accumulated market data in ZIP archives (up to 4 days retention) and
+      users have in-memory state that represents value. Migration must be reliable, verifiable,
+      and reversible to ensure no data loss during the transition to database-backed storage.
+      A poor migration experience will erode user trust.
+
+    outcome: |
+      Users can run a single CLI command to migrate all existing data from ZIP archives and
+      in-memory structures into DuckDB. Migration includes automatic backup creation,
+      progress reporting, data integrity verification, and rollback on failure. Successfully
+      migrated data is immediately queryable and usable by the application.
+
+  scope_summary:
+    description: "Implements migrators for TimeSeries, Depth, and ZIP archives plus CLI tooling"
+    files_affected: 6
+    functions_added: 15
+    tests_required: 20
+    complexity: "complex"
+    estimated_effort: "1 week"
+
+  key_components:
+    - component: "TimeSeriesMigrator"
+      type: "struct"
+      purpose: "Migrates TimeSeries<KlineDataPoint> from memory to klines and footprint tables"
+
+    - component: "DepthMigrator"
+      type: "struct"
+      purpose: "Migrates HistoricalDepth order runs to order_runs table"
+
+    - component: "ArchiveMigrator"
+      type: "struct"
+      purpose: "Parses Binance ZIP archives and bulk-loads trades into database"
+
+    - component: "MigrateCommand"
+      type: "struct"
+      purpose: "CLI interface for migration with backup, dry-run, and verification options"
+
+    - component: "BackupManager"
+      type: "struct"
+      purpose: "Creates and restores backups with manifest tracking"
+
+  implementation_hints:
+    approach: |
+      Use builder pattern for migration configuration (source selection, dry-run mode). Parse
+      ZIP archives using csv crate for Binance aggTrades format. Batch inserts for performance.
+      Create backups before any writes. Verify migration by comparing row counts and sampling
+      data for correctness. Implement rollback as backup restoration plus database file deletion.
+
+    key_considerations:
+      - "ZIP archives can be large (500MB+) - must stream CSV parsing to avoid OOM"
+      - "Binance path format encodes symbol and date - extract metadata from filesystem structure"
+      - "Backup must include JSON state and optionally market_data directory"
+      - "Verification should check row counts AND sample data integrity (not just existence)"
+      - "Progress reporting is critical for user confidence during long-running migrations"
+
+    integration_points:
+      - "Uses CRUD operations from Task 2 for all database writes"
+      - "Integrates with existing data_path() function for XDG-compliant file locations"
+      - "CLI command added to main.rs command dispatch alongside existing subcommands"
+      - "Backup manifest format should be JSON for human readability and debugging"
+
+  testing_overview:
+    strategy: "integration"
+
+    rationale: |
+      Migration is inherently an integration concern involving filesystem, database, and
+      parsing logic. Unit tests verify individual migrator components in isolation. Integration
+      tests create realistic test fixtures (small ZIP archives, sample TimeSeries) and verify
+      end-to-end migration flow including backup, migrate, verify, and rollback sequences.
+
+    critical_properties:
+      - "All data from source appears in database after migration (no data loss)"
+      - "Migration is idempotent - running twice produces same result as running once"
+      - "Backup restoration returns system to pre-migration state exactly"
+      - "Verification detects corrupted or missing data and triggers rollback"
+      - "Partial migration (interrupted mid-way) can be safely resumed or rolled back"
+
+    verification_needs:
+      formal_verification: false
+      property_testing: false
+      concurrency_testing: false
+      integration_testing: true
+
+    estimated_test_count: 20
+
+  dependencies:
+    requires_completion_of:
+      - task_id: 1
+        reason: "Needs DatabaseManager for creating migration destination database"
+      - task_id: 2
+        reason: "Uses CRUD operations to insert migrated data into database"
+
+    enables_start_of:
+      - task_id: 4
+        reason: "Application integration can assume database is populated after migration"
+
+    parallel_with: []
+
+  acceptance_criteria:
+    - "CLI command 'flowsurface migrate --source archives' successfully migrates ZIP files"
+    - "TimeSeriesMigrator correctly migrates klines and footprint data from memory"
+    - "DepthMigrator preserves order run data with correct bid/ask attribution"
+    - "ArchiveMigrator parses Binance CSV format and extracts all fields correctly"
+    - "Backup is created before migration and includes manifest.json with metadata"
+    - "Verification step detects invalid data (negative prices, missing rows)"
+    - "Rollback successfully restores from backup and deletes failed database"
+    - "Progress reporting shows percentage and row counts during migration"
+    - "Dry-run mode validates data without writing to database"
+    - "Migration stats report files processed, rows migrated, and errors encountered"
+
+  risk_assessment:
+    complexity_risk: "high"
+    integration_risk: "high"
+    testing_risk: "high"
+
+    concerns:
+      - "ZIP archive parsing is fragile - different date ranges may have format variations"
+      - "Large migrations (weeks of data) may take hours - need timeout handling"
+      - "Backup size can be very large - may exceed available disk space"
+      - "Verification is expensive for large datasets - need sampling strategy"
+
+  notes:
+    - "Consider parallel ZIP file processing for performance on multi-core systems"
+    - "Document expected migration time for typical data volumes in user guide"
+    - "Provide --resume flag for interrupted migrations in future iteration"
+
+---
+
+task:
+  id: 4
+  name: "Application Integration - Dual-Write System"
+
+  overview:
+    purpose: |
+      Integrate DatabaseManager into FlowSurface's core application flow to enable dual-write
+      persistence: all real-time market data is written to both existing in-memory structures
+      AND DuckDB simultaneously. This phase maintains full backward compatibility while
+      validating database integration under real workload conditions.
+
+    motivation: |
+      Direct cutover to database-only storage is too risky. A dual-write period allows
+      validation that database writes don't introduce performance regressions, data corruption,
+      or application instability. Users can opt-in via environment variable, providing gradual
+      rollout and easy rollback if issues are discovered.
+
+    outcome: |
+      When FLOWSURFACE_USE_DUCKDB=1 is set, all market data events (trades, klines, depth
+      updates) are persisted to DuckDB in addition to in-memory structures. Application
+      behavior remains identical to database-disabled mode. Performance impact is <5%
+      additional latency for data distribution. Database grows in real-time as data arrives.
+
+  scope_summary:
+    description: "Integrates DatabaseManager into Dashboard and adds dual-write logic to data distribution"
+    files_affected: 5
+    functions_added: 8
+    tests_required: 12
+    complexity: "moderate"
+    estimated_effort: "1 week"
+
+  key_components:
+    - component: "Flowsurface app initialization"
+      type: "function"
+      purpose: "Creates DatabaseManager during app startup and passes to Dashboard"
+
+    - component: "Dashboard persistence layer"
+      type: "function"
+      purpose: "Wraps distribute_fetched_data to persist before distributing to panes"
+
+    - component: "StateManager"
+      type: "struct"
+      purpose: "Manages opt-in behavior via environment variable and provides fallback logic"
+
+    - component: "persist_fetched_data"
+      type: "function"
+      purpose: "Dispatches persistence calls to appropriate CRUD operations based on data type"
+
+  implementation_hints:
+    approach: |
+      Add DatabaseManager as optional field in Flowsurface struct. Initialize only when
+      environment variable is set. Wrap existing distribute_fetched_data logic with
+      persistence call that fires before in-memory distribution. Use match on FetchedData
+      enum to route to appropriate CRUD operation. Log all database operations for debugging.
+
+    key_considerations:
+      - "Database writes must not block WebSocket processing - consider async or buffering"
+      - "Environment variable check should happen once at startup, not per-event"
+      - "Database errors should be logged but not crash the application (degrade gracefully)"
+      - "Cleanup logic must be updated to use database for deletion, not just file deletion"
+      - "Trade fetching should check database first before falling back to ZIP archives"
+
+    integration_points:
+      - "main.rs app initialization (around line 33-36 based on IMPL.md)"
+      - "Dashboard::distribute_fetched_data (lines 1192-1244)"
+      - "Trade fetching in exchange/src/adapter/binance.rs (lines 1657-1683)"
+      - "Cleanup in data/src/lib.rs (lines 176-188)"
+
+  testing_overview:
+    strategy: "integration"
+
+    rationale: |
+      Integration testing is essential to verify that database writes don't interfere with
+      real-time data flow. Tests should simulate realistic WebSocket event rates and verify
+      that data appears in both memory and database. Performance benchmarks ensure latency
+      targets are met. Error injection tests verify graceful degradation on database failures.
+
+    critical_properties:
+      - "Data written to database matches data written to memory (no divergence)"
+      - "Database write latency <5ms p95 to avoid blocking real-time processing"
+      - "Application continues functioning if database writes fail (logs error but doesn't crash)"
+      - "Trade fetching prefers database over ZIP archives when both exist"
+      - "Cleanup operations remove data from both memory and database"
+
+    verification_needs:
+      formal_verification: false
+      property_testing: false
+      concurrency_testing: true
+      integration_testing: true
+
+    estimated_test_count: 12
+
+  dependencies:
+    requires_completion_of:
+      - task_id: 1
+        reason: "Needs DatabaseManager to be available for initialization"
+      - task_id: 2
+        reason: "Uses CRUD operations to persist real-time data"
+
+    enables_start_of:
+      - task_id: 5
+        reason: "Query layer can read dual-written data for validation and testing"
+      - task_id: 6
+        reason: "Performance optimization can measure baseline with dual-write enabled"
+
+    parallel_with: []
+
+  acceptance_criteria:
+    - "FLOWSURFACE_USE_DUCKDB=1 enables database persistence without other code changes"
+    - "All trade events are persisted to database in real-time during WebSocket streaming"
+    - "Kline updates are written to database as they arrive from exchange"
+    - "Depth snapshots are stored at configured intervals (e.g., every 100ms)"
+    - "Trade fetching checks database before attempting ZIP archive reads"
+    - "Cleanup deletes trades from database when retention period expires"
+    - "Database write errors are logged but don't crash or freeze the application"
+    - "Performance impact <5% additional latency for distribute_fetched_data"
+    - "Integration tests verify data consistency between memory and database"
+    - "Application runs stably with database enabled for 1+ hour continuous operation"
+
+  risk_assessment:
+    complexity_risk: "medium"
+    integration_risk: "high"
+    testing_risk: "medium"
+
+    concerns:
+      - "Database write latency may cause event queue backlog under high message rates"
+      - "Error handling paths are critical - poor handling could cause data loss or crashes"
+      - "Environment variable approach is temporary - need better configuration story long-term"
+
+  notes:
+    - "Monitor memory usage to ensure database writes don't leak connections or resources"
+    - "Consider adding metrics for database write latency and error rates"
+    - "Document performance expectations and known limitations in release notes"
+
+---
+
+task:
+  id: 5
+  name: "Query Layer and Database-First Reads"
+
+  overview:
+    purpose: |
+      Implement high-level query methods that reconstruct application data structures from
+      DuckDB storage and modify data loading logic to prefer database over in-memory/file
+      sources. This enables the application to leverage persisted data for features like
+      historical chart viewing and session continuity.
+
+    motivation: |
+      Dual-write persistence (Task 4) provides no user-visible benefit if the application
+      never reads from the database. Query layer enables key features: restoring chart state
+      across application restarts, loading historical data for analysis, and reducing memory
+      footprint by keeping only visible data in memory.
+
+    outcome: |
+      Application reads from DuckDB by default when loading historical data. TimeSeries
+      structures are reconstructed from database queries. Chart panes can render historical
+      data that was persisted in previous sessions. Memory usage decreases as cold data
+      remains in database instead of being kept in memory indefinitely.
+
+  scope_summary:
+    description: "Adds high-level query methods and modifies data loading to prefer database sources"
+    files_affected: 6
+    functions_added: 12
+    tests_required: 18
+    complexity: "moderate"
+    estimated_effort: "half week"
+
+  key_components:
+    - component: "load_timeseries"
+      type: "function"
+      purpose: "Reconstructs TimeSeries<KlineDataPoint> from klines and footprint tables"
+
+    - component: "load_depth_history"
+      type: "function"
+      purpose: "Rebuilds HistoricalDepth from order_runs table for heatmap rendering"
+
+    - component: "query_trades_aggregated"
+      type: "function"
+      purpose: "Pre-aggregates trade data for footprint reconstruction"
+
+    - component: "Database-first fetch logic"
+      type: "function"
+      purpose: "Tries database before ZIP archives or API calls in trade fetching flow"
+
+  implementation_hints:
+    approach: |
+      Build query methods that mirror existing data structure constructors but populate from
+      SQL queries instead of in-memory aggregation. Use prepared statements for repeated
+      queries. Implement caching layer to avoid re-querying unchanged data. Modify existing
+      fetch_trades_batched to check database first, then fall back to legacy sources.
+
+    key_considerations:
+      - "TimeSeries reconstruction must preserve interval and tick_size metadata"
+      - "Footprint reconstruction from trades is expensive - consider caching at footprint level"
+      - "Query methods should accept time ranges to avoid loading unnecessary data"
+      - "Depth history queries need efficient price-level filtering to avoid full table scans"
+      - "Fallback to legacy sources must be seamless - users shouldn't notice database misses"
+
+    integration_points:
+      - "TimeSeries loading integrates with chart pane initialization in data/src/chart/"
+      - "Trade fetching modified in exchange/src/adapter/binance.rs"
+      - "Dashboard pane initialization should attempt database load before creating empty state"
+      - "Heatmap component uses load_depth_history for historical orderbook visualization"
+
+  testing_overview:
+    strategy: "integration"
+
+    rationale: |
+      Query layer correctness depends on integration between SQL queries, CRUD operations,
+      and application data structures. Tests verify that reconstructed structures match
+      original data. Performance tests ensure queries meet latency targets. Round-trip tests
+      confirm that data persisted in Task 4 can be correctly read back.
+
+    critical_properties:
+      - "TimeSeries reconstructed from database matches original structure"
+      - "Footprint data maintains price-level granularity and buy/sell totals"
+      - "Depth history preserves order run timing and price levels"
+      - "Database queries return in <100ms for typical visible time ranges"
+      - "Fallback to legacy sources succeeds when database is empty or corrupted"
+
+    verification_needs:
+      formal_verification: false
+      property_testing: true
+      concurrency_testing: false
+      integration_testing: true
+
+    estimated_test_count: 18
+
+  dependencies:
+    requires_completion_of:
+      - task_id: 2
+        reason: "Uses CRUD query operations to fetch data from database"
+      - task_id: 4
+        reason: "Requires dual-write to have populated database with test data"
+
+    enables_start_of:
+      - task_id: 7
+        reason: "Testing and validation can use query layer to verify database contents"
+
+    parallel_with:
+      - 6
+
+  acceptance_criteria:
+    - "load_timeseries() correctly reconstructs TimeSeries for all 11 timeframes"
+    - "Footprint data is accurately rebuilt from aggregated trade queries"
+    - "load_depth_history() returns HistoricalDepth usable by heatmap renderer"
+    - "Trade fetching checks database and returns results in <50ms for cache hits"
+    - "Database miss fallback to ZIP archives works transparently"
+    - "Charts render correctly using database-loaded data"
+    - "Application startup loads last session state from database"
+    - "Memory usage is lower when historical data stays in database vs. loaded in memory"
+    - "Query performance meets <100ms target for visible time ranges"
+    - "Round-trip tests verify persist-then-load preserves data accuracy"
+
+  risk_assessment:
+    complexity_risk: "medium"
+    integration_risk: "medium"
+    testing_risk: "low"
+
+    concerns:
+      - "Footprint reconstruction from trades is computationally expensive - may need optimization"
+      - "Cache invalidation logic for database-backed structures is complex"
+
+  notes:
+    - "Consider lazy-loading pattern where only visible data is queried from database"
+    - "Document performance characteristics of each query method for capacity planning"
+
+---
+
+task:
+  id: 6
+  name: "Performance Optimization and Monitoring"
+
+  overview:
+    purpose: |
+      Optimize database operations to meet performance targets: >10k trades/sec inserts,
+      <100ms query latency for typical ranges, and <5% overhead for dual-write. Implement
+      monitoring and health checks to detect performance degradation and database issues
+      in production.
+
+    motivation: |
+      Initial implementation focuses on correctness over performance. Real-world trading
+      workloads can generate thousands of events per second. Without optimization, database
+      writes could become a bottleneck causing event queue backlog, UI freezes, or data loss.
+      Monitoring is essential for detecting issues before they impact users.
+
+    outcome: |
+      Database operations meet all performance targets under realistic load. Bulk inserts
+      use Appender API for maximum throughput. Queries leverage indexes and prepared
+      statements. Memory limits prevent OOM conditions. Health monitoring detects slow
+      queries, connection issues, and disk space problems proactively.
+
+  scope_summary:
+    description: "Optimizes database operations and adds health monitoring infrastructure"
+    files_affected: 5
+    functions_added: 10
+    tests_required: 15
+    complexity: "moderate"
+    estimated_effort: "half week"
+
+  key_components:
+    - component: "Bulk insert optimization"
+      type: "function"
+      purpose: "Uses Appender API for batched trade inserts to achieve >10k/sec throughput"
+
+    - component: "Query optimization"
+      type: "function"
+      purpose: "Prepared statement caching and columnar query patterns"
+
+    - component: "Memory management"
+      type: "function"
+      purpose: "Configures DuckDB memory limits and temp directory for spilling"
+
+    - component: "DbHealthMonitor"
+      type: "struct"
+      purpose: "Periodic health checks for connection, query performance, and disk space"
+
+    - component: "Performance metrics"
+      type: "module"
+      purpose: "Tracks insert/query latencies and database size growth"
+
+  implementation_hints:
+    approach: |
+      Replace row-by-row inserts with Appender API for all high-frequency tables. Cache
+      prepared statements in DatabaseManager. Configure memory_limit and temp_directory
+      during initialization. Implement background task that runs health checks every 60
+      seconds and logs warnings. Add instrumentation to measure operation latencies.
+
+    key_considerations:
+      - "Appender must be flushed properly on error to avoid partial writes"
+      - "Prepared statement cache size should be bounded to prevent memory leaks"
+      - "Memory limit should leave headroom for OS and in-memory data structures"
+      - "Health checks must be lightweight to avoid becoming performance bottleneck themselves"
+      - "Disk space monitoring critical - database can grow unbounded without cleanup"
+
+    integration_points:
+      - "Appender optimization applies to insert_trades and insert_depth_snapshots"
+      - "Health monitor runs as background task spawned in main.rs"
+      - "Metrics integrate with existing logging infrastructure"
+      - "Memory config happens in DatabaseManager::new()"
+
+  testing_overview:
+    strategy: "mixed"
+
+    rationale: |
+      Performance optimization requires benchmarking to validate improvements. Unit tests
+      verify that optimizations don't break correctness. Load tests simulate realistic
+      event rates to measure throughput. Health monitoring requires integration tests to
+      verify alerts trigger correctly under error conditions.
+
+    critical_properties:
+      - "Appender achieves >10,000 inserts/sec sustained throughput"
+      - "Query latency <100ms p95 for time-range scans of 1M rows"
+      - "Memory usage stays below configured limit even under heavy load"
+      - "Health monitor detects slow queries within 60 seconds"
+      - "Database size growth rate is predictable and bounded by cleanup"
+
+    verification_needs:
+      formal_verification: false
+      property_testing: false
+      concurrency_testing: true
+      integration_testing: true
+
+    estimated_test_count: 15
+
+  dependencies:
+    requires_completion_of:
+      - task_id: 2
+        reason: "Optimizes CRUD operations implemented in Task 2"
+      - task_id: 4
+        reason: "Measures performance of dual-write integration from Task 4"
+
+    enables_start_of:
+      - task_id: 7
+        reason: "Testing and validation can use optimized implementation as baseline"
+
+    parallel_with:
+      - 5
+
+  acceptance_criteria:
+    - "Bulk insert using Appender achieves >10,000 trades/sec in benchmarks"
+    - "Query_trades for 1M rows completes in <100ms with proper indexes"
+    - "Memory limit configuration prevents DuckDB from exceeding 8GB default"
+    - "Temp directory is created and used for spilling when memory limit reached"
+    - "Health monitor detects connection failures within 60 seconds"
+    - "Health monitor alerts when query latency exceeds 1 second"
+    - "Database size monitoring warns when disk space <10% available"
+    - "Performance metrics logged for all database operations"
+    - "Benchmarks show <5% overhead for dual-write vs. memory-only mode"
+    - "Load tests demonstrate stable operation at 1000 events/sec for 10+ minutes"
+
+  risk_assessment:
+    complexity_risk: "medium"
+    integration_risk: "low"
+    testing_risk: "low"
+
+    concerns:
+      - "Appender API behavior under error conditions needs careful testing"
+      - "Memory limit configuration interacts with OS settings in complex ways"
+
+  notes:
+    - "Consider using DuckDB's built-in query profiling for optimization guidance"
+    - "Document memory tuning guidelines for different workload sizes"
+    - "Monitor for memory leaks in long-running performance tests"
+
+---
+
+task:
+  id: 7
+  name: "Testing, Validation, and Documentation"
+
+  overview:
+    purpose: |
+      Comprehensive testing of the complete DuckDB integration under realistic conditions.
+      Validate data integrity, performance characteristics, and error handling. Create user
+      and developer documentation covering migration procedures, performance tuning, and
+      troubleshooting.
+
+    motivation: |
+      Individual components may work correctly in isolation but fail under realistic
+      workloads or edge cases. Comprehensive testing provides confidence for release.
+      Documentation is essential for user adoption and future maintainability. Without
+      proper docs, users will struggle with migration and developers will struggle to
+      extend the system.
+
+    outcome: |
+      Full test suite covers unit, integration, load, and stress scenarios. All tests pass
+      consistently. Performance benchmarks are documented and reproducible. Migration guide
+      enables users to safely migrate existing data. Developer documentation explains
+      architecture and provides examples for common operations.
+
+  scope_summary:
+    description: "Implements comprehensive test suite and creates user/developer documentation"
+    files_affected: 8
+    functions_added: 25
+    tests_required: 40
+    complexity: "moderate"
+    estimated_effort: "1 week"
+
+  key_components:
+    - component: "Integration test suite"
+      type: "module"
+      purpose: "End-to-end tests covering complete data pipeline from WebSocket to database"
+
+    - component: "Load test suite"
+      type: "module"
+      purpose: "Simulates high-frequency trading data to validate performance under stress"
+
+    - component: "Migration validation"
+      type: "module"
+      purpose: "Verifies migration correctness through data comparison and integrity checks"
+
+    - component: "User migration guide"
+      type: "documentation"
+      purpose: "Step-by-step instructions for migrating existing data to DuckDB"
+
+    - component: "Developer architecture doc"
+      type: "documentation"
+      purpose: "Explains database schema, CRUD patterns, and extension points"
+
+  implementation_hints:
+    approach: |
+      Create realistic test fixtures including sample ZIP archives and TimeSeries data.
+      Build load test harness that simulates WebSocket event rates from exchange. Use
+      property-based testing for data integrity verification. Write documentation in
+      Markdown with code examples and diagrams. Include troubleshooting section addressing
+      common migration issues.
+
+    key_considerations:
+      - "Load tests should run for extended periods (1+ hour) to detect memory leaks"
+      - "Test fixtures must represent realistic data distributions (price, volume, frequency)"
+      - "Migration validation should compare checksums or row counts, not full data dumps"
+      - "Documentation examples should be runnable and tested in CI"
+      - "Troubleshooting guide should cover common errors with specific remediation steps"
+
+    integration_points:
+      - "Integration tests use actual Flowsurface app initialization from main.rs"
+      - "Load tests integrate with exchange adapter to simulate realistic events"
+      - "Migration validation uses migration modules from Task 3"
+      - "Documentation links to relevant source files and IMPL.md sections"
+
+  testing_overview:
+    strategy: "end-to-end"
+
+    rationale: |
+      This task validates the entire system working together. Tests must cover happy paths,
+      error conditions, performance limits, and edge cases. Load testing reveals issues
+      that only appear under sustained high throughput. Migration validation ensures real
+      user data can be safely transitioned.
+
+    critical_properties:
+      - "Application runs stably with database for 24+ hours without crashes or memory leaks"
+      - "Migration of realistic data volumes (weeks of trades) completes successfully"
+      - "Performance remains acceptable under maximum expected event rates"
+      - "Error recovery works correctly for common failure scenarios"
+      - "Data integrity maintained across application restarts and migrations"
+
+    verification_needs:
+      formal_verification: false
+      property_testing: true
+      concurrency_testing: true
+      integration_testing: true
+
+    estimated_test_count: 40
+
+  dependencies:
+    requires_completion_of:
+      - task_id: 1
+        reason: "Tests require database foundation"
+      - task_id: 2
+        reason: "Tests exercise CRUD operations"
+      - task_id: 3
+        reason: "Migration validation tests migration logic"
+      - task_id: 4
+        reason: "Integration tests validate application integration"
+      - task_id: 5
+        reason: "Tests verify query layer correctness"
+      - task_id: 6
+        reason: "Performance tests validate optimization work"
+
+    enables_start_of: []
+
+    parallel_with: []
+
+  acceptance_criteria:
+    - "Integration tests cover full pipeline: WebSocket → persist → query → render"
+    - "Load tests sustain 1000 events/sec for 1 hour without errors"
+    - "Memory usage remains stable (no leaks) during extended load tests"
+    - "Migration validation tests verify correctness on sample datasets"
+    - "All unit tests pass with >80% code coverage on database modules"
+    - "Property tests verify round-trip correctness for all data types"
+    - "Stress tests identify performance limits and document degradation characteristics"
+    - "User migration guide covers backup, migration, verification, and rollback"
+    - "Developer documentation explains schema design rationale and query patterns"
+    - "Troubleshooting guide addresses common issues with specific solutions"
+    - "Documentation includes performance tuning guidelines"
+    - "All code examples in documentation are tested and working"
+
+  risk_assessment:
+    complexity_risk: "low"
+    integration_risk: "low"
+    testing_risk: "high"
+
+    concerns:
+      - "Load testing realistic scenarios is time-consuming and may reveal late-stage issues"
+      - "Documentation completeness is subjective - may require user feedback iteration"
+      - "Long-running stability tests may be flaky in CI environment"
+
+  notes:
+    - "Consider using flamegraphs to identify performance hotspots during load tests"
+    - "Document known limitations and future improvement areas in release notes"
+    - "Include migration time estimates for various data volumes in user guide"
