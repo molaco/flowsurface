@@ -6,6 +6,7 @@ use data::chart::kline::KlineDataPoint;
 use exchange::fetcher::FetchRange;
 use exchange::{Kline, Timeframe, Trade};
 
+pub mod moving_average;
 pub mod open_interest;
 pub mod volume;
 
@@ -47,6 +48,23 @@ pub trait KlineIndicatorImpl {
     fn on_basis_change(&mut self, _source: &PlotData<KlineDataPoint>) {}
 
     fn on_open_interest(&mut self, _pairs: &[exchange::OpenInterest]) {}
+
+    /// Draw indicator as overlay on main chart canvas
+    /// Returns true if this indicator should be drawn as overlay
+    fn draw_overlay(
+        &self,
+        _frame: &mut iced::widget::canvas::Frame,
+        _chart: &ViewState,
+        _visible_range: std::ops::RangeInclusive<u64>,
+        _theme: &iced::Theme,
+    ) -> bool {
+        false  // Default: not an overlay indicator
+    }
+
+    /// Returns true if this indicator is overlay-only (no separate panel)
+    fn is_overlay_only(&self) -> bool {
+        false  // Default: not overlay-only
+    }
 }
 
 pub struct FetchCtx<'a> {
@@ -62,6 +80,9 @@ pub fn make_empty(which: KlineIndicator) -> Box<dyn KlineIndicatorImpl> {
         KlineIndicator::Volume => Box::new(super::kline::volume::VolumeIndicator::new()),
         KlineIndicator::OpenInterest => {
             Box::new(super::kline::open_interest::OpenInterestIndicator::new())
+        }
+        KlineIndicator::MovingAverage => {
+            Box::new(super::kline::moving_average::MovingAverageIndicator::new())
         }
     }
 }
